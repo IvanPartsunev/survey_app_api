@@ -23,9 +23,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    #third party apps
+
+    'rest_framework',
+
     # project apps
     "polls_app.account.apps.AccountConfig",
-    "polls_app.account.apps.CoreConfig"
+    "polls_app.account.apps.CoreConfig",
 
 ]
 

@@ -130,6 +130,7 @@ Control.system-ca-bundle
 GitHub.sublime-settings
 
 # Visual Studio Code #
+.vscode
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
@@ -138,6 +139,6 @@ GitHub.sublime-settings
 .history
 
 # Docker
-Dockerfile
-docker-compose.yaml
-.dockerignore
+# Dockerfile
+# docker-compose.yaml
+# .dockerignore

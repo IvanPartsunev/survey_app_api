@@ -12,9 +12,6 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 
 DEBUG = os.environ.get("DEBUG", "1") == "1"
 
-# ALLOWED_HOSTS = ["localhost"]
-
-
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS").split(" ")
 CSRF_TRUSTED_ORIGINS = [f"https://{host}" for host in ALLOWED_HOSTS]
 

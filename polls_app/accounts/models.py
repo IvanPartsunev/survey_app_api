@@ -13,6 +13,7 @@ class AccountModel(auth_models.AbstractBaseUser, auth_models.PermissionsMixin):
         unique=True,
         error_messages={
             "unique": _("A user with that email already exists."),
+            "blank": _("This field is required.")
         },
     )
 

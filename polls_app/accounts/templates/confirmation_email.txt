@@ -1,0 +1,3 @@
+To confirm your email click the following link:
+
+{{ url }}

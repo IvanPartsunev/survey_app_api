@@ -7,11 +7,8 @@ UserModel = get_user_model()
 
 class AccountViewsTests(APITestCase):
 
-    def test_create_account(self):
-        """
-        Test account creation.
-        """
-        
+    def test_create_account_assert_successful_create(self):
+
         url = reverse("register_api_view")
         data = {"email": "testmail@test.com", "password": "testpassword"}
         response = self.client.post(url, data, format="json")
@@ -19,12 +16,24 @@ class AccountViewsTests(APITestCase):
         self.assertEqual(UserModel.objects.count(), 1)
         self.assertEqual(UserModel.objects.get(email="testmail@test.com").email, "testmail@test.com")
 
-    def test_login_account(self):
+    def test_create_account_assert_account_exists(self):
+        UserModel.objects.create_user(email="testmail@test.com", password="testpassword")
+
+        url = reverse("register_api_view")
+        data = {"email": "testmail@test.com", "password": "testpassword"}
+        response = self.client.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(UserModel.objects.count(), 1)
+
+    def test_login_account_assert_successful_login(self):
         """
         Ensure obtain a token by logging in.
         """
 
-        UserModel.objects.create_user(email="testmail@test.com", password="testpassword")
+        user = UserModel.objects.create_user(email="testmail@test.com", password="testpassword")
+        user.is_active = True
+        user.save()
+
         url = reverse("login_api_view")
         data = {"email": "testmail@test.com", "password": "testpassword"}
         response = self.client.post(url, data, format="json")

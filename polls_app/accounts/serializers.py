@@ -1,15 +1,16 @@
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.http import urlsafe_base64_decode
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-
 
 UserModel = get_user_model()
 
 
 class AccountCreateSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
-        error_messages={"blank": "This field is requied."}
+        error_messages={"blank": "This field is required."}
     )
 
     class Meta:
@@ -31,6 +32,38 @@ class AccountCreateSerializer(serializers.ModelSerializer):
         representation = super().to_representation(*args, **kwargs)
         representation.pop("password", None)
         return representation
+
+
+class PasswordResetSerializer(serializers.Serializer):
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        fields = ("password",)
+
+    def validate(self, data):
+        password = data.get("password")
+        token = self.context.get("token")
+        encoded_pk = self.context.get("encoded_pk")
+
+        if token is None or encoded_pk is None:
+            raise serializers.ValidationError("Invalid token")
+
+        pk = urlsafe_base64_decode(encoded_pk).decode()
+        user = UserModel.objects.get(pk=pk)
+
+        if not PasswordResetTokenGenerator().check_token(user, token):
+            raise serializers.ValidationError("Invalid token")
+
+        user.set_password(password)
+        user.save()
+        return data
+
+
+class EmailSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    class Meta:
+        fields = ("email",)
 
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):

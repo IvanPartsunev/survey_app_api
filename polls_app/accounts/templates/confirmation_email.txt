@@ -1,3 +1,3 @@
-To confirm your email click the following link:
+To confirm your email, click the following link:
 
 {{ url }}

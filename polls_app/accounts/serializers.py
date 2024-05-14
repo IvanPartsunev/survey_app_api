@@ -10,7 +10,7 @@ UserModel = get_user_model()
 
 class AccountCreateSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
-        error_messages={"blank": "This field is required."}
+        error_messages={"blank": "This field is required."},
     )
 
     class Meta:

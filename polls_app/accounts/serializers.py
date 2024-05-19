@@ -12,26 +12,24 @@ class AccountCreateSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
         error_messages={"blank": "This field is required."},
     )
+    username = serializers.CharField(
+        error_messages={"blank": "This field is required."},
+    )
+    password = serializers.CharField(
+        write_only=True
+    )
 
     class Meta:
         model = UserModel
         fields = (
             "pk",
             "email",
+            "username",
             "password",
         )
 
-    def validate_password(self, value):
-        validate_password(value)
-        return value
-
     def create(self, validated_data):
         return UserModel.objects.create_user(**validated_data)
-
-    def to_representation(self, *args, **kwargs):
-        representation = super().to_representation(*args, **kwargs)
-        representation.pop("password", None)
-        return representation
 
 
 class PasswordResetSerializer(serializers.Serializer):
@@ -66,6 +64,10 @@ class EmailSerializer(serializers.Serializer):
         fields = ("email",)
 
 
+class VerifyEmailSerializer(serializers.Serializer):
+    token = serializers.CharField()
+
+
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
@@ -77,3 +79,13 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         data = super().validate(attrs)
 
         return data
+
+
+class InputSerializer(serializers.Serializer):
+    code = serializers.CharField(required=False)
+    error = serializers.CharField(required=False)
+    state = serializers.CharField(required=False)
+
+
+class RedirectSerializer(serializers.Serializer):
+    pass

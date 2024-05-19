@@ -17,6 +17,10 @@ class AccountModel(auth_models.AbstractBaseUser, auth_models.PermissionsMixin):
         },
     )
 
+    username = models.CharField(
+        max_length=150,
+    )
+
     is_staff = models.BooleanField(
         _("staff status"),
         default=False,
@@ -37,4 +41,4 @@ class AccountModel(auth_models.AbstractBaseUser, auth_models.PermissionsMixin):
     USERNAME_FIELD = "email"
 
     def __str__(self):
-        return self.email
+        return f"{self.email} with Username: {self.user_name}"

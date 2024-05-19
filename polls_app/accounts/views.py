@@ -148,7 +148,14 @@ class GoogleLoginRedirectApi(PublicApi):
         return redirect(authorization_url)
 
 
-class GoogleCallbackApi(PublicApi):
+class GoogleLoginApi(PublicApi):
+    """
+    Perform Google login using the LoginAccountApiView.
+    An Account is created in DB if don't exist with credentials from google id_token,
+    'sub' claim is used as account password.
+
+    """
+
     serializer_class = InputSerializer
 
     def get(self, request, *args, **kwargs):

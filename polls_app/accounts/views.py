@@ -20,6 +20,11 @@ UserModel = get_user_model()
 
 
 class CreateAccountApiView(api_views.CreateAPIView):
+    """
+    Register a User in DB.
+    This is the entry point to start 'app registration' flow.
+    """
+
     serializer_class = AccountCreateSerializer
     permission_classes = [permissions.AllowAny]
 
@@ -46,6 +51,9 @@ class CreateAccountApiView(api_views.CreateAPIView):
 
 
 class VerifyEmailApiView(api_views.GenericAPIView):
+    """
+    Activates the User account when a received link is used.
+    """
     serializer_class = VerifyEmailSerializer
     permission_classes = [permissions.AllowAny]
 
@@ -79,6 +87,11 @@ class VerifyEmailApiView(api_views.GenericAPIView):
 
 
 class PasswordResetApiView(api_views.GenericAPIView):
+    """
+    Sends password reset email to the User's email if user exists.
+    If a user doesn't exist, return an error.
+    This is the entry point to start 'password reset' flow.
+    """
     queryset = None
     serializer_class = EmailSerializer
     permission_classes = [permissions.AllowAny]
@@ -108,6 +121,10 @@ class PasswordResetApiView(api_views.GenericAPIView):
 
 
 class PasswordResetConfirmApiView(api_views.GenericAPIView):
+    """
+    Update the User password when a received link is used.
+    """
+
     serializer_class = PasswordResetSerializer
     permission_classes = [permissions.AllowAny]
 
@@ -136,6 +153,11 @@ class PublicApi(APIView):
 
 
 class GoogleLoginRedirectApi(PublicApi):
+    """
+    Redirects user to 'Google' to obtain tokens.
+    This is the entry point to start the 'Google login' flow.
+    """
+
     serializer_class = RedirectSerializer
 
     def get(self, request, *args, **kwargs):
@@ -151,7 +173,8 @@ class GoogleLoginRedirectApi(PublicApi):
 class GoogleLoginApi(PublicApi):
     """
     Perform Google login using the LoginAccountApiView.
-    An Account is created in DB if don't exist with credentials from google id_token,
+    If an account doesn't exist in DB, it is created with credentials from Google id_token;
+    'name' is used as username;
     'sub' claim is used as account password.
 
     """

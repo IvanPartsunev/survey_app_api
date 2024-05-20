@@ -65,6 +65,18 @@ class AccountViewsTests(APITestCase):
         response = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
+    def test_password_reset_confirm_assert_forbidden(self):
+
+        user = UserModel.objects.create_user(
+            email="testmail@test.com", password="testpassword", auth_provider="Facebook")
+        user.is_active = True
+        user.save()
+
+        url = reverse("reset_password_api_view")
+        data = {"email": "testmail@test.com"}
+        response = self.client.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
     def test_password_reset_confirm_assert_successful(self):
 
         user = UserModel.objects.create_user(email="testmail@test.com", password="testpassword")

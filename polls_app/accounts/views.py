@@ -93,6 +93,9 @@ class PasswordResetApiView(api_views.GenericAPIView):
     If a user doesn't exist, return an error.
     This is the entry point to start 'password reset' flow.
     """
+
+    AUTH_PROVIDER = "App auth"
+
     queryset = None
     serializer_class = EmailSerializer
     permission_classes = [permissions.AllowAny]
@@ -109,6 +112,12 @@ class PasswordResetApiView(api_views.GenericAPIView):
             return Response(
                 {"error": "User not found"},
                 status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if user.auth_provider != self.AUTH_PROVIDER:
+            return Response(
+                {"error": "Cannot change password for registration with social network!"},
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         confirmation_url = make_password_reset_url(user)

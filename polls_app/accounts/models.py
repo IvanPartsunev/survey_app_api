@@ -21,6 +21,11 @@ class AccountModel(auth_models.AbstractBaseUser, auth_models.PermissionsMixin):
         max_length=150,
     )
 
+    auth_provider = models.CharField(
+        max_length=150,
+        default="App auth",
+    )
+
     is_staff = models.BooleanField(
         _("staff status"),
         default=False,

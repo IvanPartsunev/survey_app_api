@@ -81,7 +81,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         return data
 
 
-class InputSerializer(serializers.Serializer):
+class InputSocialSerializer(serializers.Serializer):
     code = serializers.CharField(required=False)
     error = serializers.CharField(required=False)
     state = serializers.CharField(required=False)

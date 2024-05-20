@@ -11,9 +11,10 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from polls_app.accounts.serializers import AccountCreateSerializer, EmailSerializer, PasswordResetSerializer, \
-    VerifyEmailSerializer, InputSerializer, RedirectSerializer
+    VerifyEmailSerializer, InputSocialSerializer, RedirectSerializer
 from polls_app.accounts.utils.app_utils import send_confirmation_email, make_verification_url, make_password_reset_url, \
     send_reset_password_email
+from polls_app.accounts.utils.facebook_utils import FacebookSdkLoinServices
 from polls_app.accounts.utils.google_utils import GoogleSdkLoginFlowService
 
 UserModel = get_user_model()
@@ -152,7 +153,7 @@ class PublicApi(APIView):
     permission_classes = ()
 
 
-class GoogleLoginRedirectApi(PublicApi):
+class GoogleLoginRedirectApiView(PublicApi):
     """
     Redirects user to 'Google' to obtain tokens.
     This is the entry point to start the 'Google login' flow.
@@ -170,7 +171,7 @@ class GoogleLoginRedirectApi(PublicApi):
         return redirect(authorization_url)
 
 
-class GoogleLoginApi(PublicApi):
+class GoogleLoginApiView(PublicApi):
     """
     Perform Google login using the LoginAccountApiView.
     If an account doesn't exist in DB, it is created with credentials from Google id_token;
@@ -178,11 +179,12 @@ class GoogleLoginApi(PublicApi):
     'sub' claim is used as account password.
 
     """
+    AUTH_PROVIDER = "Google"
 
-    serializer_class = InputSerializer
+    serializer_class = InputSocialSerializer
 
     def get(self, request, *args, **kwargs):
-        input_serializer = InputSerializer(data=request.GET)
+        input_serializer = InputSocialSerializer(data=request.GET)
         input_serializer.is_valid(raise_exception=True)
 
         validated_data = input_serializer.validated_data
@@ -233,8 +235,101 @@ class GoogleLoginApi(PublicApi):
         user = UserModel.objects.filter(email=user_email).first()
 
         if not user:
-            user = google_login_flow.create_google_user(user_email, user_name, user_sub, user_is_verified)
+            auth_provider = self.AUTH_PROVIDER
+            user = google_login_flow.create_google_user(user_email, user_name, auth_provider, user_sub, user_is_verified)
+
+        if user.auth_provider != self.AUTH_PROVIDER:
+            return Response(
+                {"error": "User already registered with another method of registration."},
+                status=status.HTTP_409_CONFLICT
+            )
 
         login_token = google_login_flow.login_google_user(user, user_sub, user_is_verified)
+
+        return Response(login_token)
+
+
+class FacebookLoginApiView(PublicApi):
+    """
+    Redirects user to 'Facebook' to obtain tokens.
+    This is the entry point to start the 'Google login' flow.
+    """
+    def get(self, request):
+        facebook_login_flow = FacebookSdkLoinServices()
+
+        fb_auth_url, state = facebook_login_flow.get_authorization_url()
+
+        request.session['oauth_state'] = state
+
+        return redirect(fb_auth_url)
+
+
+class FacebookRedirectApiView(PublicApi):
+    """
+    Perform Facebook login using the LoginAccountApiView.
+    If an account doesn't exist in DB, it is created with credentials from Facebook;
+    'name' is used as username;
+    'facebook_id' claim is used as account password.
+
+    """
+    AUTH_PROVIDER = "Facebook"
+
+    serializer_class = InputSocialSerializer
+
+    def get(self, request):
+        input_serializer = InputSocialSerializer(data=request.GET)
+        input_serializer.is_valid(raise_exception=True)
+
+        validated_data = input_serializer.validated_data
+
+        code = validated_data.get("code")
+        error = validated_data.get("error")
+        state = validated_data.get("state")
+
+        if error is not None:
+            return Response(
+                {"error": error},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        session_state = request.session.get('oauth_state')
+
+        if session_state is None:
+            return Response(
+                {"error": "CSRF check failed."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        del request.session["oauth_state"]
+
+        if state != session_state:
+            return Response({'error': 'Invalid state parameter'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not code:
+            return Response({'error': 'No code provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        facebook_login_flow = FacebookSdkLoinServices()
+
+        access_token = facebook_login_flow.get_token(code=code)
+
+        user_info = facebook_login_flow.get_user_info(access_token=access_token)
+
+        email = user_info.get('email')
+        username = user_info.get('name')
+        facebook_id = user_info.get('id')
+
+        user = UserModel.objects.filter(email=email).first()
+
+        if not user:
+            auth_provider = self.AUTH_PROVIDER
+            user = facebook_login_flow.create_facebook_user(email, username, auth_provider, facebook_id, True)
+
+        if user.auth_provider != self.AUTH_PROVIDER:
+            Response(
+                {"error": "User already registered with another method of registration."},
+                status=status.HTTP_409_CONFLICT
+            )
+
+        login_token = facebook_login_flow.login_facebook_user(user, facebook_id)
 
         return Response(login_token)

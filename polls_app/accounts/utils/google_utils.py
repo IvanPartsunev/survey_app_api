@@ -63,6 +63,8 @@ class GoogleAccessTokens:
 
 
 class GoogleSdkLoginFlowService:
+    AUTH_PROVIDER = "Google"
+
     API_URI = reverse_lazy("google-login")
 
     GOOGLE_CLIENT_TYPE = "web"
@@ -123,7 +125,7 @@ class GoogleSdkLoginFlowService:
         )
         return authorization_url, state
 
-    def get_tokens(self, *, code: str, state: str):
+    def get_tokens(self, *, code, state):
         redirect_uri = self._get_redirect_uri()
         client_config = self._generate_client_config()
 
@@ -143,7 +145,7 @@ class GoogleSdkLoginFlowService:
 
         return google_tokens
 
-    def get_user_info(self, *, google_tokens: GoogleAccessTokens):
+    def get_user_info(self, *, google_tokens):
         access_token = google_tokens.access_token
 
         response = requests.get(
@@ -157,13 +159,14 @@ class GoogleSdkLoginFlowService:
         return response.json()
 
     @staticmethod
-    def create_google_user(email, user_name, google_sub, is_verified):
+    def create_google_user(email, user_name, auth_provider, google_sub, is_verified):
 
         user = UserModel.objects.create_user(
             email=email,
             username=user_name,
             password=google_sub,
-            is_active=is_verified
+            auth_provider=auth_provider,
+            is_active=is_verified,
         )
 
         return user

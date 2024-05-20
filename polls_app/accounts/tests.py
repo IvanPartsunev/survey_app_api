@@ -13,17 +13,17 @@ class AccountViewsTests(APITestCase):
     def test_create_account_assert_successful_create(self):
 
         url = reverse("register_api_view")
-        data = {"email": "testmail@test.com", "password": "testpassword"}
+        data = {"email": "testmail@test.com", "username": "test user", "password": "testpassword"}
         response = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(UserModel.objects.count(), 1)
         self.assertEqual(UserModel.objects.get(email="testmail@test.com").email, "testmail@test.com")
 
     def test_create_account_assert_account_exists(self):
-        UserModel.objects.create_user(email="testmail@test.com", password="testpassword")
+        UserModel.objects.create_user(email="testmail@test.com", username="test user", password="testpassword")
 
         url = reverse("register_api_view")
-        data = {"email": "testmail@test.com", "password": "testpassword"}
+        data = {"email": "testmail@test.com", "username": "test user 2", "password": "testpassword"}
         response = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
 

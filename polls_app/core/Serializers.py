@@ -24,8 +24,8 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class QuestionSerializer(serializers.ModelSerializer):
-    answers = AnswerSerializer(many=True)
-    comments = CommentSerializer(many=True)
+    answers = AnswerSerializer(many=True, source="question_choices")
+    comments = CommentSerializer(many=True, source="question_comments")
 
     class Meta:
         model = QuestionModel

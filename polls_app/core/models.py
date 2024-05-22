@@ -35,6 +35,9 @@ class QuestionModel(CreateUpdateMixin):
         related_name="owner",
     )
 
+    def __str__(self):
+        return self.question_text
+
 
 class ChoiceModel(CreateUpdateMixin):
     choice_text = models.CharField(max_length=100)
@@ -46,6 +49,9 @@ class ChoiceModel(CreateUpdateMixin):
         related_name="question_choices"
         )
 
+    def __str__(self):
+        return self.choice_text
+
 
 class CommentModel(CreateUpdateMixin):
     comment = models.TextField(max_length=255)
@@ -54,3 +60,6 @@ class CommentModel(CreateUpdateMixin):
         on_delete=models.CASCADE,
         related_name="question_comments"
     )
+
+    def __str__(self):
+        return self.comment

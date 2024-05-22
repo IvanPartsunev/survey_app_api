@@ -35,4 +35,6 @@ class QuestionSerializer(serializers.ModelSerializer):
             "is_active",
             "created_on",
             "edited_on",
+            "answers",
+            "comments"
         ]

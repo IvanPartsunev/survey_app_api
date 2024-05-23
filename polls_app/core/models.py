@@ -8,6 +8,17 @@ from polls_app.core.mixins import CreateUpdateMixin
 UserModel = get_user_model()
 
 
+class ProductModel(CreateUpdateMixin):
+    name = models.CharField(
+        max_length=150,
+    )
+    owner = models.ForeignKey(
+        AccountModel,
+        on_delete=models.CASCADE,
+        related_name="product_owner",
+    )
+
+
 class QuestionModel(CreateUpdateMixin):
     class QuestionType(models.TextChoices):
         ONE_CHOICE = "ONE", _("Single choice")
@@ -32,7 +43,13 @@ class QuestionModel(CreateUpdateMixin):
     owner = models.ForeignKey(
         AccountModel,
         on_delete=models.CASCADE,
-        related_name="owner",
+        related_name="question_owner",
+    )
+
+    product = models.ForeignKey(
+        ProductModel,
+        on_delete=models.CASCADE,
+        related_name="questions",
     )
 
     def __str__(self):

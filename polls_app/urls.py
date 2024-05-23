@@ -20,5 +20,5 @@ urlpatterns = [
         name="redoc",
     ),
     path("auth/", include("polls_app.accounts.urls")),
-    path("questions/", include("polls_app.core.urls")),
+    path("core/", include("polls_app.core.urls")),
 ]

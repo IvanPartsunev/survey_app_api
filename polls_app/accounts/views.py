@@ -312,10 +312,16 @@ class FacebookRedirectApiView(PublicApi):
         del request.session["oauth_state"]
 
         if state != session_state:
-            return Response({'error': 'Invalid state parameter'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'error': 'Invalid state parameter'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         if not code:
-            return Response({'error': 'No code provided'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'error': 'No code provided'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         facebook_login_flow = FacebookSdkLoinServices()
 

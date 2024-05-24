@@ -21,9 +21,9 @@ class ProductModel(CreateUpdateMixin):
 
 class QuestionModel(CreateUpdateMixin):
     class QuestionType(models.TextChoices):
-        ONE_CHOICE = "ONE", _("Single choice")
-        MULTIPLE_CHOICES = "MLT", _("Multiple choices")
-        TEXT = "TXT", _("Open answer")
+        ONE_CHOICE = "Single choice", _("Single choice")
+        MULTIPLE_CHOICES = "Multiple choices", _("Multiple choices")
+        TEXT = "Open answer", _("Open answer")
 
     question_type = models.CharField(
         choices=QuestionType,

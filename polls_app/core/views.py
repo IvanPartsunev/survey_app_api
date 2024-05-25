@@ -4,10 +4,11 @@ from rest_framework import generics as views
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from polls_app.core.mixins import AnswerAndCommentDeleteMixin
 from polls_app.core.permissions import IsOwner
 from polls_app.core.serializers import QuestionSerializer, ProductListSerializer, ProductCreateSerializer, \
-    QuestionCreateSerializer
-from polls_app.core.models import QuestionModel, ProductModel
+    QuestionCreateSerializer, AnswerDeleteSerializer, CommentDeleteSerializer
+from polls_app.core.models import QuestionModel, ProductModel, AnswerModel, CommentModel
 from polls_app.custom_exeption import ApplicationError
 
 
@@ -61,6 +62,14 @@ class QuestionCreateApiView(views.CreateAPIView):
 
 
 class QuestionRUDApiView(views.RetrieveUpdateDestroyAPIView):
+    """
+    Handle Create, update and delete questions.
+    Also, handles answers creation and update.
+    Answer can be created or updated only in this view.
+    Answer creation and update are handled in PUT request.
+
+    """
+
     serializer_class = QuestionSerializer
     permission_classes = [IsAuthenticated, IsOwner]
 
@@ -98,4 +107,25 @@ class QuestionRUDApiView(views.RetrieveUpdateDestroyAPIView):
         return Response(question_data)
 
 
+class AnswerDeleteApiView(views.DestroyAPIView):
+    """
+    Handle answer deletion.
+    Pk of the Question to witch answer is related should be provided.
 
+    """
+    model = AnswerModel
+    serializer_class = AnswerDeleteSerializer
+    permission_classes = [IsAuthenticated]
+
+# TODO add comment create and update
+
+
+class CommentDeleteApiView(AnswerAndCommentDeleteMixin):
+    """
+    Handle Comment deletion.
+    Pk of the Question to witch answer is related should be provided.
+
+    """
+    model = CommentModel
+    serializer_class = CommentDeleteSerializer
+    permission_classes = [IsAuthenticated]

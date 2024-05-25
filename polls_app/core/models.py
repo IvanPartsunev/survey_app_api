@@ -56,8 +56,8 @@ class QuestionModel(CreateUpdateMixin):
         return self.question_text
 
 
-class ChoiceModel(CreateUpdateMixin):
-    choice_text = models.CharField(max_length=100)
+class AnswerModel(CreateUpdateMixin):
+    answer_text = models.CharField(max_length=100)
     votes = models.IntegerField(default=0)
 
     question = models.ForeignKey(
@@ -67,7 +67,7 @@ class ChoiceModel(CreateUpdateMixin):
         )
 
     def __str__(self):
-        return self.choice_text
+        return self.answer_text
 
 
 class CommentModel(CreateUpdateMixin):

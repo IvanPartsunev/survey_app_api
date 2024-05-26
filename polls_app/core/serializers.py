@@ -26,7 +26,10 @@ class AnswerSerializer(serializers.ModelSerializer):
 
 class AnswerDeleteSerializer(serializers.ModelSerializer):
 
-    question_pk = serializers.IntegerField(required=True)
+    question_pk = serializers.IntegerField(
+        required=True,
+        help_text="ID of the question to which the answer belongs"
+    )
 
     class Meta:
         model = AnswerModel
@@ -36,31 +39,31 @@ class AnswerDeleteSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
+
+    question_pk = serializers.IntegerField(
+        required=True,
+        help_text="ID of the question to which the comment belongs"
+    )
+
     class Meta:
         model = CommentModel
         fields = [
+            "pk",
             "comment",
             "created_on",
             "edited_on",
-        ]
-
-
-class CommentDeleteSerializer(serializers.ModelSerializer):
-    question_pk = serializers.IntegerField(required=True)
-
-    class Meta:
-        fields = [
             "question_pk"
         ]
 
 
 class QuestionSerializer(serializers.ModelSerializer):
     answers = AnswerSerializer(many=True, source="question_choices")
-    comments = CommentSerializer(many=True, source="question_comments")
+    comments = CommentSerializer(many=True, source="question_comments", required=False)
 
     class Meta:
         model = QuestionModel
         fields = [
+            "pk",
             "question_type",
             "question_text",
             "is_active",
@@ -71,6 +74,7 @@ class QuestionSerializer(serializers.ModelSerializer):
         ]
 
     def update(self, instance, validated_data):
+        validated_data.pop("question_comments", [])
         answers_data = validated_data.pop('question_choices', [])
         answers = instance.question_choices.all()
 
@@ -85,31 +89,15 @@ class QuestionSerializer(serializers.ModelSerializer):
                 try:
                     AnswerModel.objects.create(question=instance, **answer_data)
                 except IntegrityError:
-                    raise ApplicationError("Answer with this Primary key already exists. "
+                    raise ApplicationError("Answer with this Primary key already exists for another user. "
                                            "No pk should be provided when creating new answer.")
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
 
         instance.save()
 
         return instance
-
-
-class ProductListSerializer(serializers.ModelSerializer):
-    product_questions = QuestionSerializer(many=True, source="questions")
-
-    class Meta:
-        model = ProductModel
-        fields = [
-            "name",
-            "product_questions",
-        ]
-
-
-class ProductCreateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProductModel
-        fields = [
-            "name",
-        ]
 
 
 class QuestionCreateSerializer(serializers.ModelSerializer):
@@ -142,3 +130,24 @@ class QuestionCreateSerializer(serializers.ModelSerializer):
         AnswerModel.objects.bulk_create(answers)
 
         return question
+
+
+class ProductListSerializer(serializers.ModelSerializer):
+    product_questions = QuestionSerializer(many=True, source="questions")
+
+    class Meta:
+        model = ProductModel
+        fields = [
+            "pk",
+            "name",
+            "product_questions",
+        ]
+
+
+class ProductCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductModel
+        fields = [
+            "name",
+        ]
+

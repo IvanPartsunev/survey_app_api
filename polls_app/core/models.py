@@ -23,7 +23,7 @@ class QuestionModel(CreateUpdateMixin):
     class QuestionType(models.TextChoices):
         ONE_CHOICE = "Single choice", _("Single choice")
         MULTIPLE_CHOICES = "Multiple choices", _("Multiple choices")
-        TEXT = "Open answer", _("Open answer")
+        TEXT = "Text", _("Text")
 
     question_type = models.CharField(
         choices=QuestionType,

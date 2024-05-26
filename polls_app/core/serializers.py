@@ -41,7 +41,7 @@ class AnswerDeleteSerializer(serializers.ModelSerializer):
 class CommentSerializer(serializers.ModelSerializer):
 
     question_pk = serializers.IntegerField(
-        required=True,
+        required=False,
         help_text="ID of the question to which the comment belongs"
     )
 

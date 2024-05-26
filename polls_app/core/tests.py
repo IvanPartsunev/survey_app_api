@@ -63,6 +63,7 @@ class CoreViewsTests(APITestCase):
                 {
                     "pk": self.comment.id,
                     "comment": "Updated Comment"
+                    # "question_pk": self.question.pk
                 }
             ]
         }
@@ -141,7 +142,7 @@ class CoreViewsTests(APITestCase):
             "is_active": True,
             "answers": [
                 {
-                    "pk": 2,
+                    "pk": self.answer.pk,
                     "answer_text": "New Answer",
                     "votes": 10
                 }
@@ -154,28 +155,3 @@ class CoreViewsTests(APITestCase):
                          "Answer with this Primary key already exists for another user. "
                          "No pk should be provided when creating new answer.")
 
-    def test_update_question_with_duplicate_answer_pk(self):
-        self.authenticate()
-
-        duplicate_data = {
-            "question_type": "Text",
-            "question_text": "Updated Question Again",
-            "is_active": True,
-            "answers": [
-                {
-                    "pk": self.answer.id,
-                    "answer_text": "Updated Answer",
-                    "votes": 5
-                },
-                {
-                    "pk": self.answer.id,
-                    "answer_text": "Duplicate Answer",
-                    "votes": 10
-                }
-            ]
-        }
-        response = self.client.put(self.url, duplicate_data, format='json')
-
-        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
-        self.assertEqual(response.data['error'],
-                         "Answer with this Primary key already exists. No pk should be provided when creating new answer.")

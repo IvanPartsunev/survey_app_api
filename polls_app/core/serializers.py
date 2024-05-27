@@ -24,26 +24,11 @@ class AnswerSerializer(serializers.ModelSerializer):
         ]
 
 
-class AnswerDeleteSerializer(serializers.ModelSerializer):
-
-    question_pk = serializers.IntegerField(
-        required=True,
-        help_text="ID of the question to which the answer belongs"
-    )
-
-    class Meta:
-        model = AnswerModel
-        fields = [
-            "question_pk"
-        ]
+class AnswerDeleteSerializer(serializers.Serializer):
+    pass
 
 
 class CommentSerializer(serializers.ModelSerializer):
-
-    question_pk = serializers.IntegerField(
-        required=False,
-        help_text="ID of the question to which the comment belongs"
-    )
 
     class Meta:
         model = CommentModel
@@ -52,8 +37,43 @@ class CommentSerializer(serializers.ModelSerializer):
             "comment",
             "created_on",
             "edited_on",
-            "question_pk"
         ]
+    
+    def create(self, validated_data):
+        question_pk = (self.context
+                       .get("request", {})
+                       .data
+                       .get("context", {})
+                       .get("question_pk", None))
+
+        if question_pk is not None:
+            try:
+                question = QuestionModel.objects.get(pk=question_pk)
+                validated_data["question"] = question
+            except ObjectDoesNotExist:
+                raise ApplicationError("Question with provided pk does not exists.")
+        
+        return super().create(validated_data)
+    
+    def update(self, instance, validated_data):
+        question_pk = (self.context
+                       .get("request", {})
+                       .data
+                       .get("context", {})
+                       .get("question_pk", None))
+
+        if question_pk is not None:
+            question = QuestionModel.objects.get(pk=question_pk)
+            instance.question = question
+
+        instance.comment = validated_data.get('comment', instance.comment)
+        instance.edited_on = validated_data.get('edited_on', instance.edited_on)
+        instance.save()
+        return instance
+
+
+class CommentDeleteSerializer(serializers.Serializer):
+    pass
 
 
 class QuestionSerializer(serializers.ModelSerializer):
@@ -150,4 +170,3 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         fields = [
             "name",
         ]
-

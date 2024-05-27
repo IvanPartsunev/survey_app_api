@@ -1,10 +1,12 @@
 from django.urls import reverse
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from polls_app.core.models import AnswerModel, CommentModel, QuestionModel, ProductModel
+from polls_app.custom_exeption import ApplicationError
 
 UserModel = get_user_model()
 
@@ -47,7 +49,6 @@ class CoreViewsTests(APITestCase):
             comment='Sample Comment'
         )
 
-        self.url = reverse('question_rud', args=[self.question.id])
         self.data = {
             "question_type": "Single choice",
             "question_text": "Updated Question",
@@ -62,8 +63,10 @@ class CoreViewsTests(APITestCase):
             "comments": [
                 {
                     "pk": self.comment.id,
-                    "comment": "Updated Comment"
-                    # "question_pk": self.question.pk
+                    "comment": "Updated Comment",
+                    "context": {
+                        "question_pk": self.question.pk
+                    }
                 }
             ]
         }
@@ -74,7 +77,8 @@ class CoreViewsTests(APITestCase):
     def test_update_question_assert_success(self):
         self.authenticate()
 
-        response = self.client.put(self.url, self.data, format='json')
+        url = reverse('question_rud', args=[self.question.id])
+        response = self.client.put(url, self.data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -99,7 +103,9 @@ class CoreViewsTests(APITestCase):
                 }
             ]
         }
-        response = self.client.put(self.url, new_data, format='json')
+
+        url = reverse('question_rud', args=[self.question.id])
+        response = self.client.put(url, new_data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -148,10 +154,48 @@ class CoreViewsTests(APITestCase):
                 }
             ]
         }
-        response = self.client.put(self.url, new_data, format='json')
+
+        url = reverse('question_rud', args=[self.question.id])
+        response = self.client.put(url, new_data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
         self.assertEqual(response.data['error'],
                          "Answer with this Primary key already exists for another user. "
                          "No pk should be provided when creating new answer.")
 
+    def test_comment_create_assert_success(self):
+        self.authenticate()
+
+        new_data = {
+            "comment": "New Comment",
+            "context": {
+                "question_pk": self.question.pk
+            }
+        }
+
+        url = reverse('comment_create_list')
+        response = self.client.post(url, new_data, format='json')
+
+        pk = response.data.get("pk")
+        new_comment = CommentModel.objects.get(pk=pk)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        self.assertEqual(new_comment.comment, "New Comment")
+
+    def test_comment_create_question_does_not_exists_assert_application_error(self):
+        self.authenticate()
+
+        new_data = {
+            "comment": "New Comment",
+            "context": {
+                "question_pk": 0
+            }
+        }
+
+        url = reverse('comment_create_list')
+
+        with self.assertRaises(ApplicationError) as context:
+            self.client.post(url, new_data, format='json')
+
+        self.assertIn("Question with provided pk does not exists.", str(context.exception))

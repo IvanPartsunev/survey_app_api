@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from polls_app.core.mixins import AnswerAndCommentDeleteMixin
 from polls_app.core.permissions import IsOwner
 from polls_app.core.serializers import QuestionSerializer, ProductListSerializer, ProductCreateSerializer, \
-    QuestionCreateSerializer, AnswerDeleteSerializer, CommentSerializer
+    QuestionCreateSerializer, AnswerDeleteSerializer, CommentSerializer, CommentDeleteSerializer
 from polls_app.core.models import QuestionModel, ProductModel, AnswerModel, CommentModel
 from polls_app.custom_exeption import ApplicationError
 
@@ -108,10 +108,10 @@ class QuestionRUDApiView(views.RetrieveUpdateDestroyAPIView):
         return Response(question_data)
 
 
-class AnswerDeleteApiView(views.DestroyAPIView):
+class AnswerDeleteApiView(AnswerAndCommentDeleteMixin):
     """
     Handle answer deletion.
-    Question pk to witch answer is related should be provided as data.
+    Related question pk as context should be provided. {"context": "question_pk": 0}
 
     """
     model = AnswerModel
@@ -119,20 +119,26 @@ class AnswerDeleteApiView(views.DestroyAPIView):
     permission_classes = [IsAuthenticated]
 
 
-class CommentCreateApiView(views.CreateAPIView):
+class CommentListCreateApiView(views.ListCreateAPIView):
     """
-    Create comment. No authentication is needed.
-    """
-    serializer_class = CommentSerializer
-    permission_classes = [AllowAny]
-
-
-class CommentDeleteApiView(AnswerAndCommentDeleteMixin):
-    """
-    Handle Comment deletion.
-    Question pk to witch answer is related should be provided as data.
+    Create comment and listing comments for question.
     No authentication is needed.
     """
-    model = CommentModel
     serializer_class = CommentSerializer
     permission_classes = [AllowAny]
+
+
+class CommentApiView(AnswerAndCommentDeleteMixin, views.UpdateAPIView):
+    """
+    Handle Comment update and delete.
+    Related question pk as context should be provided. {"context": "question_pk": 0}
+    Permission classes are set to AllowAny.
+    """
+    model = CommentModel
+    permission_classes = [AllowAny]
+
+    def get_serializer_class(self):
+        if self.request.method == "DELETE":
+            return CommentDeleteSerializer
+        return CommentSerializer
+

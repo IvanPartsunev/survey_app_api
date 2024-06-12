@@ -7,6 +7,8 @@ from polls_app.core.models import QuestionModel, AnswerModel, CommentModel, Prod
 from polls_app.custom_exeption import ApplicationError
 
 
+
+
 class AnswerSerializer(serializers.ModelSerializer):
     """
     If no pk is provided, a new answer will be created.
@@ -38,7 +40,7 @@ class CommentSerializer(serializers.ModelSerializer):
             "created_on",
             "edited_on",
         ]
-    
+
     def create(self, validated_data):
         question_pk = (self.context
                        .get("request", {})
@@ -52,9 +54,9 @@ class CommentSerializer(serializers.ModelSerializer):
                 validated_data["question"] = question
             except ObjectDoesNotExist:
                 raise ApplicationError("Question with provided pk does not exists.")
-        
+
         return super().create(validated_data)
-    
+
     def update(self, instance, validated_data):
         question_pk = (self.context
                        .get("request", {})

@@ -11,6 +11,8 @@ services:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    networks:
+      - celery_default
 
   pgadmin:
     image: dpage/pgadmin4
@@ -24,8 +26,10 @@ services:
       - pgadmin:/var/lib/pgadmin
     depends_on:
       - postgresql
+    networks:
+      - celery_default
 
-  django:
+  polls-app:
     build: ./
     container_name: polls_app
     ports:
@@ -38,7 +42,13 @@ services:
     tty: true
     depends_on:
       - postgresql
+    networks:
+      - celery_default
 
 volumes:
   db_data:
   pgadmin:
+
+networks:
+  celery_default:
+    external: true

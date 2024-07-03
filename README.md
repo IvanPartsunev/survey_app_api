@@ -31,3 +31,5 @@ Products are sent to company offices or customers with a QR code containing the 
       
         PGADMIN_DEFAULT_EMAIL=pgadmin@email.com
         PGADMIN_DEFAULT_PASSWORD=pgadmin
+  
+  - Network configuration in docker-compose.yaml file needs to be change to fit your needs.

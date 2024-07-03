@@ -18,6 +18,9 @@ class ProductModel(CreateUpdateMixin):
         related_name="product_owner",
     )
 
+    def __str__(self):
+        return self.name
+
 
 class QuestionModel(CreateUpdateMixin):
     class QuestionType(models.TextChoices):

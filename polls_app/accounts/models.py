@@ -46,4 +46,6 @@ class AccountModel(auth_models.AbstractBaseUser, auth_models.PermissionsMixin):
     USERNAME_FIELD = "email"
 
     def __str__(self):
-        return f"{self.email} with Username: {self.username}"
+        if self.username:
+            return f"{self.email} with Username: {self.username}"
+        return self.email

@@ -20,8 +20,13 @@ class ProductModelAdmin(admin.ModelAdmin):
         "owner",
     )
 
+    def __init__(self, model, admin_site):
+        super().__init__(model, admin_site)
+        self.name = None
+
     def __str__(self):
-        return f"{self.name}"
+        return self.name
+
 
 @admin.register(QuestionModel)
 class QuestionModelAdmin(admin.ModelAdmin):
@@ -49,8 +54,12 @@ class QuestionModelAdmin(admin.ModelAdmin):
         "product",
     )
 
+    def __init__(self, model, admin_site):
+        super().__init__(model, admin_site)
+        self.question_text = None
+
     def __str__(self):
-        return f"{self.question_text}"
+        return self.question_text
 
 
 @admin.register(AnswerModel)
@@ -73,26 +82,16 @@ class AnswerModelAdmin(admin.ModelAdmin):
         "votes",
     )
 
+    def __init__(self, model, admin_site):
+        super().__init__(model, admin_site)
+        self.answer_text = None
+
     def __str__(self):
-        return f"{self.answer_text}"
+        return self.answer_text
 
 
 @admin.register(CommentModel)
 class CommentModelAdmin(admin.ModelAdmin):
     list_display = (
         "question",
-        "comment_text",
     )
-
-    search_fields = (
-        "question",
-        "comment_text",
-    )
-
-    ordering = (
-        "question",
-        "comment_text",
-    )
-
-    def __str__(self):
-        return f"{self.comment_text}"

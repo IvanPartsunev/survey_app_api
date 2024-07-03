@@ -25,5 +25,9 @@ class AccountModelAdmin(admin.ModelAdmin):
         "username",
     )
 
+    def __init__(self, model, admin_site):
+        super().__init__(model, admin_site)
+        self.email = None
+
     def __str__(self):
-        return f"{self.email} with Username: {self.username}"
+        return self.email

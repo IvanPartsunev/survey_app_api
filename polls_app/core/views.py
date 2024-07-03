@@ -245,3 +245,19 @@ class QuestionsApiView(views.GenericAPIView):
 #             return CommentDeleteSerializer
 #         return CommentSerializer
 
+class ProductsApiCallView(views.GenericAPIView):
+    serializer_class = ProductListSerializer
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def get_queryset(self):
+        queryset = ProductModel.objects.prefetch_related("questions__question_choices")
+        return queryset
+
+    def get_serializer_class(self):
+        if self.request.method.lower() == "get":
+            return ProductListSerializer

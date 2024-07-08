@@ -12,7 +12,7 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
-      - celery_default
+      - celerydemo_default
 
   pgadmin:
     image: dpage/pgadmin4
@@ -27,7 +27,7 @@ services:
     depends_on:
       - postgresql
     networks:
-      - celery_default
+      - celerydemo_default
 
   polls-app:
     build: ./
@@ -43,12 +43,12 @@ services:
     depends_on:
       - postgresql
     networks:
-      - celery_default
+      - celerydemo_default
 
 volumes:
   db_data:
   pgadmin:
 
 networks:
-  celery_default:
+  celerydemo_default:
     external: true

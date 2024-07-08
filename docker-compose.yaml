@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  postgresql:
+    image: postgres
+    container_name: postgres
+    restart: always
+    env_file:
+      - ./env/postgres.env
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    restart: always
+    env_file:
+      - ./env/pgadmin.env
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    depends_on:
+      - postgresql
+
+  polls-app:
+    build: ./
+    container_name: polls_app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/polls_app
+    env_file:
+      - ./env/django.env
+    stdin_open: true
+    tty: true
+    depends_on:
+      - postgresql
+
+volumes:
+  db_data:
+  pgadmin:

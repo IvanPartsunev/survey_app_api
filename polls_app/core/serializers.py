@@ -7,8 +7,6 @@ from polls_app.core.models import QuestionModel, AnswerModel, CommentModel, Prod
 from polls_app.custom_exeption import ApplicationError
 
 
-
-
 class AnswerSerializer(serializers.ModelSerializer):
     """
     If no pk is provided, a new answer will be created.
@@ -36,7 +34,7 @@ class CommentSerializer(serializers.ModelSerializer):
         model = CommentModel
         fields = [
             "pk",
-            "comment",
+            "comment_text",
             "created_on",
             "edited_on",
         ]
@@ -68,19 +66,13 @@ class CommentSerializer(serializers.ModelSerializer):
             question = QuestionModel.objects.get(pk=question_pk)
             instance.question = question
 
-        instance.comment = validated_data.get('comment', instance.comment)
+        instance.comment_text = validated_data.get('comment_text', instance.comment_text)
         instance.edited_on = validated_data.get('edited_on', instance.edited_on)
         instance.save()
         return instance
 
 
-class CommentDeleteSerializer(serializers.Serializer):
-    pass
-
-
 class QuestionListSerializer(serializers.ModelSerializer):
-    answers = AnswerSerializer(many=True, source="question_choices")
-    comments = CommentSerializer(many=True, source="question_comments", required=False)
 
     class Meta:
         model = QuestionModel
@@ -91,18 +83,22 @@ class QuestionListSerializer(serializers.ModelSerializer):
             "is_active",
             "created_on",
             "edited_on",
-            "answers",
-            "comments"
         ]
 
 
-class QuestionCreateSerializer(serializers.ModelSerializer):
+class QuestionSerializer(serializers.ModelSerializer):
+    answers = AnswerSerializer(many=True, source="question_choices")
+    comments = CommentSerializer(many=True, source="question_comments", required=False)
 
     class Meta:
         model = QuestionModel
         fields = [
+            "pk",
             "question_type",
             "question_text",
+            "is_active",
+            "answers",
+            "comments",
         ]
 
     # def update(self, instance, validated_data):
@@ -164,7 +160,7 @@ class QuestionCreateSerializer(serializers.ModelSerializer):
     #     return question
 
 
-class ProductListSerializer(serializers.ModelSerializer):
+class ProductSerializer(serializers.ModelSerializer):
     product_questions = QuestionListSerializer(many=True, source="questions")
 
     class Meta:
@@ -172,13 +168,22 @@ class ProductListSerializer(serializers.ModelSerializer):
         fields = [
             "pk",
             "name",
+            "created_on",
+            "edited_on",
             "product_questions",
         ]
 
 
-class ProductSerializer(serializers.ModelSerializer):
+class ProductListSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = ProductModel
         fields = [
+            "pk",
             "name",
+            "created_on",
+            "edited_on",
         ]
+
+
+

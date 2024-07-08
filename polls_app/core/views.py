@@ -9,19 +9,17 @@ from polls_app.core.mixins import AnswerAndCommentDeleteMixin
 from polls_app.core.permissions import IsOwner
 from polls_app.core.selectors import ProductsSelector, QuestionSelector
 from polls_app.core.serializers import (QuestionListSerializer, ProductListSerializer, ProductSerializer,
-                                        AnswerDeleteSerializer, CommentSerializer, CommentDeleteSerializer,
-                                        QuestionCreateSerializer)
-from polls_app.core.models import QuestionModel, ProductModel, AnswerModel, CommentModel
-from polls_app.custom_exeption import ApplicationError
+                                        AnswerDeleteSerializer, CommentSerializer,
+                                        QuestionSerializer)
 
 
-class ProductsApiView(views.GenericAPIView):
-    serializer_class = ProductListSerializer
-    permission_classes = [IsAuthenticated]
+class ProductApiView(views.GenericAPIView):
+    serializer_class = ProductSerializer
+    permission_classes = [IsAuthenticated, IsOwner]
 
     def get(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
@@ -29,27 +27,6 @@ class ProductsApiView(views.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save(owner=self.request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    def get_queryset(self):
-        selector = ProductsSelector(self.request.user)
-        queryset = selector.get_queryset().prefetch_related("questions").prefetch_related("answers")
-        return queryset
-
-    def get_serializer_class(self):
-        if self.request.method.lower() == "get":
-            return ProductListSerializer
-        elif self.request.method.lower() == "post":
-            return ProductSerializer
-
-
-class ProductApiView(views.GenericAPIView):
-    serializer_class = ProductListSerializer
-    permission_classes = [IsAuthenticated, IsOwner]
-
-    def get(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
 
     def put(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
@@ -63,7 +40,7 @@ class ProductApiView(views.GenericAPIView):
             # forcibly invalidate the prefetch cache on the instance.
             instance._prefetched_objects_cache = {}
 
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def delete(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -75,13 +52,45 @@ class ProductApiView(views.GenericAPIView):
         queryset = selector.get_queryset().select_related("owner").prefetch_related("questions")
         return queryset
 
-    def get_serializer_class(self):
-        if self.request.method.lower() == "get":
-            return ProductListSerializer
-        elif self.request.method.lower() in ["put", "patch"]:
-            return ProductSerializer
-        elif self.request.method.lower() == "delete":
-            return ProductListSerializer
+
+class ProductsListApiView(views.GenericAPIView):
+    serializer_class = ProductListSerializer
+    permission_classes = [IsAuthenticated, IsOwner]
+
+    def get(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def delete(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        queryset.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def get_queryset(self):
+        selector = ProductsSelector(self.request.user)
+        queryset = selector.get_queryset()
+        return queryset
+
+
+class QuestionsListApiView(views.GenericAPIView):
+    serializer_class = QuestionListSerializer
+    permission_classes = [IsAuthenticated, IsOwner]
+
+    def get(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def delete(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        queryset.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def get_queryset(self):
+        selector = QuestionSelector(self.request.user, product=self.kwargs["product_pk"])
+        queryset = selector.get_queryset()
+        return queryset
 
 
 class QuestionsApiView(views.GenericAPIView):
@@ -112,7 +121,7 @@ class QuestionsApiView(views.GenericAPIView):
         if self.request.method.lower() == "get":
             return QuestionListSerializer
         elif self.request.method.lower() == "post":
-            return QuestionCreateSerializer
+            return QuestionSerializer
 
 
 # class ProductsCreateApiView(views.CreateAPIView):

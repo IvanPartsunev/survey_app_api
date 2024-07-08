@@ -23,6 +23,7 @@ class ProductModelAdmin(admin.ModelAdmin):
     def __str__(self):
         return f"{self.name}"
 
+
 @admin.register(QuestionModel)
 class QuestionModelAdmin(admin.ModelAdmin):
     list_display = (

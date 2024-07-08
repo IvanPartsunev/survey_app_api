@@ -71,7 +71,7 @@ class AnswerModel(CreateUpdateMixin):
 
 
 class CommentModel(CreateUpdateMixin):
-    comment = models.TextField(max_length=255)
+    comment_text = models.TextField(max_length=255)
     question = models.ForeignKey(
         QuestionModel,
         on_delete=models.CASCADE,
@@ -79,4 +79,4 @@ class CommentModel(CreateUpdateMixin):
     )
 
     def __str__(self):
-        return self.comment
+        return self.comment_text

@@ -63,7 +63,7 @@ class AnswerModel(CreateUpdateMixin):
     question = models.ForeignKey(
         QuestionModel,
         on_delete=models.CASCADE,
-        related_name="question_choices"
+        related_name="question_answers"
         )
 
     def __str__(self):

@@ -9,8 +9,8 @@ from polls_app.core.mixins import AnswerAndCommentDeleteMixin
 from polls_app.core.permissions import IsOwner
 from polls_app.core.selectors import ProductsSelector, QuestionSelector
 from polls_app.core.serializers import (QuestionListSerializer, ProductListSerializer, ProductSerializer,
-                                        AnswerDeleteSerializer, CommentSerializer,
-                                        QuestionSerializer)
+                                        AnswerDeleteSerializer, CommentSerializer, QuestionReadDeleteSerializer,
+                                        QuestionCreateUpdateSerializer)
 
 
 class ProductApiView(views.GenericAPIView):
@@ -73,30 +73,70 @@ class ProductsListApiView(views.GenericAPIView):
         return queryset
 
 
-class QuestionsListApiView(views.GenericAPIView):
-    serializer_class = QuestionListSerializer
-    permission_classes = [IsAuthenticated, IsOwner]
+class QuestionApiView(views.GenericAPIView):
+    lookup_fields = ["product_pk", "question_pk"]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
+        question = self.get_object()
+        if question:
+            serializer = self.get_serializer(question)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(
+            {"error": "Didn't found question with the given id"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    def put(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def delete(self, request, *args, **kwargs):
+        question = self.get_object()
+        if question:
+            question.delete()
+            return Response(
+                {"message": "Successfully deleted"},
+                status=status.HTTP_204_NO_CONTENT,
+            )
+        return Response(
+            {"error": "Didn't found question with the given id"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    def get_object(self):
         queryset = self.get_queryset()
-        queryset.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        question_id = self.kwargs.get("question_pk")
+        question = queryset.filter(id=question_id).first()
+        return question
 
     def get_queryset(self):
-        selector = QuestionSelector(self.request.user, product=self.kwargs["product_pk"])
-        queryset = selector.get_queryset()
-        return queryset
+        selector = QuestionSelector(self.request.user, self.kwargs.get("product_pk"))
+
+        if self.request.method.lower() == "get":
+            queryset = (selector.get_queryset()
+                        .select_related("owner")
+                        .prefetch_related("question_answers")
+                        .prefetch_related("question_comments"))
+            return queryset
+
+        else:
+            queryset = selector.get_queryset()
+            return queryset
+
+    def get_serializer_class(self):
+        if self.request.method.lower() in ["get", "delete"]:
+            return QuestionReadDeleteSerializer
+        elif self.request.method.lower() in ["post", "put"]:
+            return QuestionCreateUpdateSerializer
 
 
-class QuestionsApiView(views.GenericAPIView):
-    serializer_class = ProductListSerializer
-    lookup_field = "product_pk"
-    permission_classes = [IsAuthenticated]
+class QuestionsListApiView(views.GenericAPIView):
+    serializer_class = QuestionListSerializer
+    permission_classes = [IsAuthenticated, IsOwner]
 
     def get(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -109,21 +149,15 @@ class QuestionsApiView(views.GenericAPIView):
         serializer.save(owner=self.request.user, product_id=self.kwargs.get("product_pk"))
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    def delete(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        queryset.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     def get_queryset(self):
-        selector = QuestionSelector(self.request.user, self.kwargs.get("product_pk"))
-        queryset = (selector.get_queryset()
-                    .select_related("owner")
-                    .prefetch_related("question_choices")
-                    .prefetch_related("question_comments"))
+        selector = QuestionSelector(self.request.user, product=self.kwargs["product_pk"])
+        queryset = selector.get_queryset()
         return queryset
-
-    def get_serializer_class(self):
-        if self.request.method.lower() == "get":
-            return QuestionListSerializer
-        elif self.request.method.lower() == "post":
-            return QuestionSerializer
-
-
 # class ProductsCreateApiView(views.CreateAPIView):
 #     """
 #     Create only the product.

@@ -86,8 +86,8 @@ class QuestionListSerializer(serializers.ModelSerializer):
         ]
 
 
-class QuestionSerializer(serializers.ModelSerializer):
-    answers = AnswerSerializer(many=True, source="question_choices")
+class QuestionReadDeleteSerializer(serializers.ModelSerializer):
+    answers = AnswerSerializer(many=True, source="question_answers")
     comments = CommentSerializer(many=True, source="question_comments", required=False)
 
     class Meta:
@@ -99,6 +99,16 @@ class QuestionSerializer(serializers.ModelSerializer):
             "is_active",
             "answers",
             "comments",
+        ]
+
+
+class QuestionCreateUpdateSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = QuestionModel
+        fields = [
+            "question_type",
+            "question_text",
         ]
 
     # def update(self, instance, validated_data):

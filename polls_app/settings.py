@@ -1,4 +1,6 @@
 import os
+import logging
+
 from pathlib import Path
 from datetime import timedelta
 
@@ -138,7 +140,7 @@ SPECTACULAR_SETTINGS = {
 
 STATIC_URL = "static/"
 
-LOGIN_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = "/"
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_USE_TLS = True
@@ -167,23 +169,21 @@ FACEBOOK_APP_ID = os.environ.get("DJANGO_FACEBOOK_APP_ID")
 FACEBOOK_APP_SECRET = os.environ.get("DJANGO_FACEBOOK_APP_SECRET")
 FACEBOOK_REDIRECT_URI = os.environ.get("DJANGO_FACEBOOK_REDIRECT_URI")
 
-import logging
-
-LOGGING = {'version': 1, 'disable_existing_loggers': False, 'handlers': {
-    'console': {
-        'level': 'DEBUG',
-        'class': 'logging.StreamHandler',
+LOGGING = {"version": 1, "disable_existing_loggers": False, "handlers": {
+    "console": {
+        "level": "DEBUG",
+        "class": "logging.StreamHandler",
     },
-}, 'loggers': {
-    'django.db.backends': {
-        'handlers': ['console'],
-        'level': 'DEBUG',
+}, "loggers": {
+    "django.db.backends": {
+        "handlers": ["console"],
+        "level": "DEBUG",
     },
-}, 'formatters': {
-    'verbose': {
-        'format': '{levelname} {asctime} {module} {message}',
-        'style': '{',
+}, "formatters": {
+    "verbose": {
+        "format": "{levelname} {asctime} {module} {message}",
+        "style": "{",
     },
 }}
 
-LOGGING['handlers']['console']['formatter'] = 'verbose'
+LOGGING["handlers"]["console"]["formatter"] = "verbose"

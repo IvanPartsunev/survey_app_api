@@ -5,15 +5,17 @@ from django.conf import settings
 from django.db import IntegrityError
 from django.shortcuts import redirect
 
+from drf_spectacular.utils import extend_schema
+
 from rest_framework import generics as api_views, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from polls_app.accounts.serializers import AccountCreateSerializer, EmailSerializer, PasswordResetSerializer, \
-    VerifyEmailSerializer, InputSocialSerializer, RedirectSerializer
-from polls_app.accounts.utils.app_utils import send_confirmation_email, make_verification_url, make_password_reset_url, \
-    send_reset_password_email
+from polls_app.accounts.serializers import (AccountCreateSerializer, EmailSerializer, PasswordResetSerializer,
+                                            VerifyEmailSerializer, InputSocialSerializer, RedirectSerializer)
+from polls_app.accounts.utils.app_utils import (send_confirmation_email, make_verification_url,
+                                                make_password_reset_url, send_reset_password_email)
 from polls_app.accounts.utils.facebook_utils import FacebookSdkLoinServices
 from polls_app.accounts.utils.google_utils import GoogleSdkLoginFlowService
 
@@ -170,6 +172,7 @@ class GoogleLoginRedirectApiView(PublicApi):
 
     serializer_class = RedirectSerializer
 
+    @extend_schema(exclude=True)
     def get(self, request, *args, **kwargs):
         google_login_flow = GoogleSdkLoginFlowService()
 
@@ -245,7 +248,13 @@ class GoogleLoginApiView(PublicApi):
 
         if not user:
             auth_provider = self.AUTH_PROVIDER
-            user = google_login_flow.create_google_user(user_email, user_name, auth_provider, user_sub, user_is_verified)
+            user = google_login_flow.create_google_user(
+                user_email,
+                user_name,
+                auth_provider,
+                user_sub,
+                user_is_verified
+            )
 
         if user.auth_provider != self.AUTH_PROVIDER:
             return Response(
@@ -261,7 +270,7 @@ class GoogleLoginApiView(PublicApi):
 class FacebookLoginApiView(PublicApi):
     """
     Redirects user to 'Facebook' to obtain tokens.
-    This is the entry point to start the 'Google login' flow.
+    This is the entry point to start the 'Facebook login' flow.
     """
     def get(self, request):
         facebook_login_flow = FacebookSdkLoinServices()
@@ -285,6 +294,7 @@ class FacebookRedirectApiView(PublicApi):
 
     serializer_class = InputSocialSerializer
 
+    @extend_schema(exclude=True)
     def get(self, request):
         input_serializer = InputSocialSerializer(data=request.GET)
         input_serializer.is_valid(raise_exception=True)

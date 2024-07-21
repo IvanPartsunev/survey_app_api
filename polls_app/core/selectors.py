@@ -1,4 +1,4 @@
-from polls_app.core.models import ProductModel, QuestionModel
+from polls_app.core.models import ProductModel, QuestionModel, AnswerModel, CommentModel
 
 
 class ProductsSelector:
@@ -16,3 +16,19 @@ class QuestionSelector:
 
     def get_queryset(self):
         return QuestionModel.objects.filter(owner=self.user, product=self.product)
+
+
+class AnswerSelector:
+    def __init__(self, question_id):
+        self.question = question_id
+
+    def get_queryset(self):
+        return AnswerModel.objects.filter(question=self.question)
+
+
+class CommentSelector:
+    def __init__(self, question_id):
+        self.question = question_id
+
+    def get_queryset(self):
+        return CommentModel.objects.filter(question=self.question)

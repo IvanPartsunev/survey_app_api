@@ -1,25 +1,17 @@
-from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from polls_app.accounts.models import AccountModel
-from polls_app.core.mixins import CreateUpdateMixin
-
-UserModel = get_user_model()
+from polls_app.core.mixins import CreateUpdateOwnerMixin
 
 
-class ProductModel(CreateUpdateMixin):
+class ProductModel(CreateUpdateOwnerMixin):
     name = models.CharField(
         max_length=150,
     )
-    owner = models.ForeignKey(
-        AccountModel,
-        on_delete=models.CASCADE,
-        related_name="product_owner",
-    )
 
 
-class QuestionModel(CreateUpdateMixin):
+class QuestionModel(CreateUpdateOwnerMixin):
     class QuestionType(models.TextChoices):
         ONE_CHOICE = "Single choice", _("Single choice")
         MULTIPLE_CHOICES = "Multiple choices", _("Multiple choices")
@@ -39,12 +31,6 @@ class QuestionModel(CreateUpdateMixin):
         default=False,
     )
 
-    owner = models.ForeignKey(
-        AccountModel,
-        on_delete=models.CASCADE,
-        related_name="question_owner",
-    )
-
     product = models.ForeignKey(
         ProductModel,
         on_delete=models.CASCADE,
@@ -55,7 +41,7 @@ class QuestionModel(CreateUpdateMixin):
         return self.question_text
 
 
-class AnswerModel(CreateUpdateMixin):
+class AnswerModel(CreateUpdateOwnerMixin):
     answer_text = models.CharField(max_length=100)
     votes = models.IntegerField(default=0)
 
@@ -69,7 +55,7 @@ class AnswerModel(CreateUpdateMixin):
         return self.answer_text
 
 
-class CommentModel(CreateUpdateMixin):
+class CommentModel(CreateUpdateOwnerMixin):
     comment_text = models.TextField(max_length=255)
     question = models.ForeignKey(
         QuestionModel,

@@ -1,20 +1,18 @@
-from django.shortcuts import get_object_or_404
-from rest_framework import views as api_views, status
+from django.db import IntegrityError
+from rest_framework import status
 from rest_framework import generics as views
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import views as api_views
 
-from polls_app.core.mixins import AnswerAndCommentDeleteMixin
+from polls_app.core.mixins import AnswerCommentsCreateMixin
 from polls_app.core.permissions import IsOwner
-from polls_app.core.selectors import ProductsSelector, QuestionSelector
-from polls_app.core.serializers import (QuestionListSerializer, ProductListSerializer, ProductReadDeleteSerializer,
-                                        AnswerDeleteSerializer, CommentSerializer, QuestionReadDeleteSerializer,
-                                        QuestionCreateUpdateSerializer, ProductCreateUpdateSerializer)
+from polls_app.core.selectors import ProductsSelector, QuestionSelector, AnswerSelector, CommentSelector
+from polls_app.core.serializers import QuestionListSerializer, ProductListSerializer, ProductReadDeleteSerializer, \
+    QuestionReadDeleteSerializer, QuestionCreateUpdateSerializer, ProductCreateUpdateSerializer, \
+    AnswerReadDeleteSerializer, AnswerCreateUpdateSerializer, CommentCreateUpdateSerializer, CommentReadDeleteSerializer
 
 
 class ProductsListApiView(views.GenericAPIView):
-
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get(self, request, *args, **kwargs):
@@ -36,16 +34,6 @@ class ProductsListApiView(views.GenericAPIView):
         serializer.save(owner=self.request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def delete(self, request, *args, **kwargs):
-        """
-        DELETE request delete ALL products for the user.
-        This is option for special cases and its better not to be used.
-        """
-
-        queryset = self.get_queryset()
-        queryset.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
     def get_queryset(self):
         selector = ProductsSelector(self.request.user)
         queryset = selector.get_queryset()
@@ -59,7 +47,6 @@ class ProductsListApiView(views.GenericAPIView):
 
 
 class ProductsApiView(views.GenericAPIView):
-
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get(self, request, *args, **kwargs):
@@ -111,7 +98,6 @@ class ProductsApiView(views.GenericAPIView):
 
 
 class QuestionsListApiView(views.GenericAPIView):
-
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get(self, request, *args, **kwargs):
@@ -134,18 +120,8 @@ class QuestionsListApiView(views.GenericAPIView):
         serializer.save(owner=self.request.user, product_id=self.kwargs.get("product_pk"))
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def delete(self, request, *args, **kwargs):
-        """
-        DELETE request delete ALL questions for the product.
-        This is option for special cases and its better not to be used.
-        """
-
-        queryset = self.get_queryset()
-        queryset.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
     def get_queryset(self):
-        selector = QuestionSelector(self.request.user, product=self.kwargs["product_pk"])
+        selector = QuestionSelector(self.request.user, self.kwargs.get("product_pk"))
         queryset = selector.get_queryset()
         return queryset
 
@@ -157,9 +133,8 @@ class QuestionsListApiView(views.GenericAPIView):
 
 
 class QuestionsApiView(views.GenericAPIView):
-
     lookup_fields = ["product_pk", "question_pk"]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOwner]
 
     def get(self, request, *args, **kwargs):
         """
@@ -179,12 +154,24 @@ class QuestionsApiView(views.GenericAPIView):
         """
         PUT request edit question with the given id.
         """
+        try:
 
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            if getattr(instance, '_prefetched_objects_cache', None):
+                # If 'prefetch_related' has been applied to a queryset, we need to
+                # forcibly invalidate the prefetch cache on the instance.
+                instance._prefetched_objects_cache = {}
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except IntegrityError:
+            return Response(
+                {"error": "Didn't found question with the given id"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     def delete(self, request, *args, **kwargs):
         """
@@ -207,6 +194,7 @@ class QuestionsApiView(views.GenericAPIView):
         queryset = self.get_queryset()
         question_id = self.kwargs.get("question_pk")
         question = queryset.filter(id=question_id).first()
+
         return question
 
     def get_queryset(self):
@@ -230,36 +218,164 @@ class QuestionsApiView(views.GenericAPIView):
             return QuestionCreateUpdateSerializer
 
 
-# class AnswerDeleteApiView(AnswerAndCommentDeleteMixin):
-#     """
-#     Handle answer deletion.
-#     Related question pk as context should be provided. {"context": "question_pk": 0}
-#
-#     """
-#     model = AnswerModel
-#     serializer_class = AnswerDeleteSerializer
-#     permission_classes = [IsAuthenticated]
-#
-#
-# class CommentListCreateApiView(views.ListCreateAPIView):
-#     """
-#     Create comment and listing comments for question.
-#     No authentication is needed.
-#     """
-#     serializer_class = CommentSerializer
-#     permission_classes = [AllowAny]
-#
-#
-# class CommentApiView(AnswerAndCommentDeleteMixin, views.UpdateAPIView):
-#     """
-#     Handle Comment update and delete.
-#     Related question pk as context should be provided. {"context": "question_pk": 0}
-#     Permission classes are set to AllowAny.
-#     """
-#     model = CommentModel
-#     permission_classes = [AllowAny]
-#
-#     def get_serializer_class(self):
-#         if self.request.method == "DELETE":
-#             return CommentDeleteSerializer
-#         return CommentSerializer
+class AnswersApiView(views.GenericAPIView):
+    lookup_fields = ["question_pk", "answer_pk"]
+    permission_classes = [IsAuthenticated, IsOwner]
+
+    def get_object(self):
+        queryset = self.get_queryset()
+        answer_id = self.kwargs.get("answer_pk")
+        answer = queryset.filter(id=answer_id).first()
+        return answer
+
+    def get_queryset(self):
+        selector = AnswerSelector(self.kwargs.get("question_pk"))
+        queryset = selector.get_queryset()
+        return queryset
+
+
+class AnswersCreateApiView(AnswersApiView, AnswerCommentsCreateMixin):
+    serializer_class = AnswerCreateUpdateSerializer
+
+    def post(self, request, *args, **kwargs):
+        """
+        POST request CREATE an answer for the question.
+        """
+        return super().post(request, *args, **kwargs)
+
+
+class AnswersReadUpdateDeleteApiView(AnswersApiView):
+    def get(self, request, *args, **kwargs):
+        """
+        GET request retrieve an answer with the given id.
+        """
+
+        answer = self.get_object()
+        if answer:
+            serializer = self.get_serializer(answer)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(
+            {"error": "Didn't found answer with the given id"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    def put(self, request, *args, **kwargs):
+        """
+        PUT request edit an answer with the given id.
+        """
+        try:
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except IntegrityError:
+            return Response(
+                {"error": "Didn't found answer with the given id"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    def delete(self, request, *args, **kwargs):
+        """
+        DELETE request delete an answer with the given id.
+        """
+
+        question = self.get_object()
+        if question:
+            question.delete()
+            return Response(
+                {"message": "Successfully deleted"},
+                status=status.HTTP_204_NO_CONTENT,
+            )
+        return Response(
+            {"error": "Didn't found answer with the given id"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    def get_serializer_class(self):
+        if self.request.method.lower() in ["get", "delete"]:
+            return AnswerReadDeleteSerializer
+        elif self.request.method.lower() == "put":
+            return AnswerCreateUpdateSerializer
+
+
+class CommentsApiView(views.GenericAPIView):
+    lookup_fields = ["product_pk", "question_pk", "comment_pk"]
+    permission_classes = [IsAuthenticated, IsOwner]
+
+    def get_object(self):
+        queryset = self.get_queryset()
+        comment_id = self.kwargs.get("comment_pk")
+        comment = queryset.filter(id=comment_id).first()
+        return comment
+
+    def get_queryset(self):
+        selector = CommentSelector(self.kwargs.get("question_pk"))
+        queryset = selector.get_queryset()
+        return queryset
+
+
+class CommentsCreateApiView(CommentsApiView, AnswerCommentsCreateMixin):
+    serializer_class = CommentCreateUpdateSerializer
+
+    def post(self, request, *args, **kwargs):
+        """
+        POST request CREATE a comment for the question.
+        """
+        return super().post(request, *args, **kwargs)
+
+
+class CommentsReadUpdateDeleteApiView(CommentsApiView):
+    def get(self, request, *args, **kwargs):
+        """
+        GET request retrieve an answer with the given id.
+        """
+
+        comment = self.get_object()
+        if comment:
+            serializer = self.get_serializer(comment)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(
+            {"error": "Didn't found comment with the given id"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    def put(self, request, *args, **kwargs):
+        """
+        PUT request edit an answer with the given id.
+        """
+
+        try:
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except IntegrityError:
+            return Response(
+                {"error": "Didn't found comment with the given id"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    def delete(self, request, *args, **kwargs):
+        """
+        DELETE request delete an answer with the given id.
+        """
+
+        comment = self.get_object()
+        if comment:
+            comment.delete()
+            return Response(
+                {"message": "Successfully deleted"},
+                status=status.HTTP_204_NO_CONTENT,
+            )
+        return Response(
+            {"error": "Didn't found comment with the given id"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    def get_serializer_class(self):
+        if self.request.method.lower() in ["get", "delete"]:
+            return CommentReadDeleteSerializer
+        elif self.request.method.lower() == "put":
+            return CommentCreateUpdateSerializer

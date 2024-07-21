@@ -1,41 +1,36 @@
-from django.core.exceptions import ObjectDoesNotExist
-from django.db import models
-from django.shortcuts import get_object_or_404
-from rest_framework import generics as views, status
-from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth import get_user_model
+from django.db import models, IntegrityError
+
+from rest_framework import status
 from rest_framework.response import Response
 
-from polls_app.custom_exeption import ApplicationError
+
+UserModel = get_user_model()
 
 
-class CreateUpdateMixin(models.Model):
+class CreateUpdateOwnerMixin(models.Model):
     created_on = models.DateField(auto_now_add=True)
     edited_on = models.DateField(auto_now=True)
+    owner = models.ForeignKey(UserModel, on_delete=models.CASCADE)
 
     class Meta:
         abstract = True
 
 
-class AnswerAndCommentDeleteMixin(views.DestroyAPIView):
-
-    model = None
+class AnswerCommentsCreateMixin:
     serializer_class = None
-    permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        question_pk = self.request.data.get("context", {}).get("question_pk")
-        queryset = self.model.objects.filter(question_id=question_pk)
-        return queryset
-
-    def get_object(self):
+    def post(self, request, *args, **kwargs):
         try:
-            return super().get_object()
-        except ObjectDoesNotExist:
-            raise ApplicationError("No question matches given pk")
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save(question_id=self.kwargs.get("question_pk"))
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def delete(self, request, *args, **kwargs):
-        self.destroy(request, *args, **kwargs)
-        return Response(
-            {"message": "Successfully deleted"},
-            status=status.HTTP_200_OK
-        )
+        except IntegrityError:
+            return Response(
+                {"error": "Didn't found question with the given id"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+

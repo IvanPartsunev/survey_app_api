@@ -13,13 +13,18 @@ from polls_app.core.serializers import (QuestionListSerializer, ProductListSeria
                                         QuestionCreateUpdateSerializer)
 
 
-class ProductApiView(views.GenericAPIView):
-    serializer_class = ProductSerializer
+class ProductsListApiView(views.GenericAPIView):
+    """
+    GET request returns list of all products for the user.
+    POST request CREATE a product for the user.
+    DELETE request delete ALL products for the user. This is option for special cases and its better not to be used.
+    """
+    serializer_class = ProductListSerializer
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
@@ -27,6 +32,31 @@ class ProductApiView(views.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save(owner=self.request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        queryset.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def get_queryset(self):
+        selector = ProductsSelector(self.request.user)
+        queryset = selector.get_queryset()
+        return queryset
+
+
+class ProductsApiView(views.GenericAPIView):
+    """
+    GET request retrieve product with given id.
+    PUT request edit product with given id.
+    DELETE request product object with given id.
+    """
+    serializer_class = ProductSerializer
+    permission_classes = [IsAuthenticated, IsOwner]
+
+    def get(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
@@ -53,8 +83,13 @@ class ProductApiView(views.GenericAPIView):
         return queryset
 
 
-class ProductsListApiView(views.GenericAPIView):
-    serializer_class = ProductListSerializer
+class QuestionsListApiView(views.GenericAPIView):
+    """
+    GET request returns list of all questions for the product.
+    POST request CREATE a question for the product.
+    DELETE request delete ALL questions for the product. This is option for special cases and its better not to be used.
+    """
+    serializer_class = QuestionListSerializer
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get(self, request, *args, **kwargs):
@@ -62,18 +97,29 @@ class ProductsListApiView(views.GenericAPIView):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(owner=self.request.user, product_id=self.kwargs.get("product_pk"))
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
     def delete(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         queryset.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_queryset(self):
-        selector = ProductsSelector(self.request.user)
+        selector = QuestionSelector(self.request.user, product=self.kwargs["product_pk"])
         queryset = selector.get_queryset()
         return queryset
 
 
-class QuestionApiView(views.GenericAPIView):
+class QuestionsApiView(views.GenericAPIView):
+    """
+    GET request retrieve question with given id.
+    PUT request edit question with given id.
+    DELETE request delete question with given id.
+    """
     lookup_fields = ["product_pk", "question_pk"]
     permission_classes = [IsAuthenticated]
 
@@ -133,31 +179,6 @@ class QuestionApiView(views.GenericAPIView):
         elif self.request.method.lower() in ["post", "put"]:
             return QuestionCreateUpdateSerializer
 
-
-class QuestionsListApiView(views.GenericAPIView):
-    serializer_class = QuestionListSerializer
-    permission_classes = [IsAuthenticated, IsOwner]
-
-    def get(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(owner=self.request.user, product_id=self.kwargs.get("product_pk"))
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    def delete(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        queryset.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    def get_queryset(self):
-        selector = QuestionSelector(self.request.user, product=self.kwargs["product_pk"])
-        queryset = selector.get_queryset()
-        return queryset
 # class ProductsCreateApiView(views.CreateAPIView):
 #     """
 #     Create only the product.
@@ -287,4 +308,3 @@ class QuestionsListApiView(views.GenericAPIView):
 #         if self.request.method == "DELETE":
 #             return CommentDeleteSerializer
 #         return CommentSerializer
-

@@ -170,7 +170,7 @@ class QuestionCreateUpdateSerializer(serializers.ModelSerializer):
     #     return question
 
 
-class ProductSerializer(serializers.ModelSerializer):
+class ProductReadDeleteSerializer(serializers.ModelSerializer):
     product_questions = QuestionListSerializer(many=True, source="questions")
 
     class Meta:
@@ -181,6 +181,14 @@ class ProductSerializer(serializers.ModelSerializer):
             "created_on",
             "edited_on",
             "product_questions",
+        ]
+
+
+class ProductCreateUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductModel
+        fields = [
+            "name",
         ]
 
 

@@ -4,6 +4,8 @@ from django.db import models, IntegrityError
 from rest_framework import status
 from rest_framework.response import Response
 
+from polls_app.core.models import QuestionModel
+from polls_app.core.permissions import IsOwner
 
 UserModel = get_user_model()
 
@@ -21,16 +23,16 @@ class AnswerCommentsCreateMixin:
     serializer_class = None
 
     def post(self, request, *args, **kwargs):
-        try:
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save(question_id=self.kwargs.get("question_pk"))
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        except IntegrityError:
-            return Response(
-                {"error": "Didn't found question with the given id"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        question = QuestionModel.objects.filter(id=self.kwargs.get("question_pk"))
+
+        IsOwner.question_permission_check(question, request.user)
+
+        serializer.save(question=question)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 

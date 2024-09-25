@@ -1,3 +1,5 @@
+from oauthlib.uri_validate import query
+
 from polls_app.core.models import ProductModel, QuestionModel, AnswerModel, CommentModel
 
 
@@ -6,7 +8,8 @@ class ProductsSelector:
         self.user = user
 
     def get_queryset(self):
-        return ProductModel.objects.filter(owner=self.user)
+        queryset = ProductModel.objects.filter(owner=self.user).prefetch_related("questions")
+        return queryset
 
 
 class QuestionSelector:

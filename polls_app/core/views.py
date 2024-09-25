@@ -99,7 +99,7 @@ class ProductsApiView(views.GenericAPIView):
 
     def get_serializer_class(self):
         if self.request.method.lower() in ["get", "delete"]:
-            return ProductReadDeleteSerializer
+            return ProductListSerializer
         elif self.request.method.lower() == "put":
             return ProductCreateUpdateSerializer
 
@@ -107,14 +107,14 @@ class ProductsApiView(views.GenericAPIView):
 class QuestionsListApiView(views.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, *args, **kwargs):
-        """
-        GET request returns list of all questions for the product.
-        """
-
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    # def get(self, request, *args, **kwargs):
+    #     """
+    #     GET request returns list of all questions for the product.
+    #     """
+    #
+    #     queryset = self.get_queryset()
+    #     serializer = self.get_serializer(queryset, many=True)
+    #     return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
         """
@@ -147,19 +147,19 @@ class QuestionsApiView(views.GenericAPIView):
     lookup_fields = ["product_pk", "question_pk"]
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, *args, **kwargs):
-        """
-        GET request retrieve question with the given id.
-        """
-
-        question = self.get_object()
-        if question:
-            serializer = self.get_serializer(question)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(
-            {"error": "Didn't found question with the given id"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    # def get(self, request, *args, **kwargs):
+    #     """
+    #     GET request retrieve question with the given id.
+    #     """
+    #
+    #     question = self.get_object()
+    #     if question:
+    #         serializer = self.get_serializer(question)
+    #         return Response(serializer.data, status=status.HTTP_200_OK)
+    #     return Response(
+    #         {"error": "Didn't found question with the given id"},
+    #         status=status.HTTP_400_BAD_REQUEST,
+    #     )
 
     def put(self, request, *args, **kwargs):
         """
@@ -244,21 +244,21 @@ class AnswersReadUpdateDeleteApiView(AnswersApiMixin, views.GenericAPIView):
     lookup_fields = ["question_pk", "answer_pk"]
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, *args, **kwargs):
-        """
-        GET request retrieve an answer with the given id.
-        """
-        question = self.get_question(self.kwargs)
-        IsOwner.question_permission_check(question, request.user)
-
-        answer = self.get_object()
-        if answer:
-            serializer = self.get_serializer(answer)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(
-            {"error": "Didn't found answer with the given id"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    # def get(self, request, *args, **kwargs):
+    #     """
+    #     GET request retrieve an answer with the given id.
+    #     """
+    #     question = self.get_question(self.kwargs)
+    #     IsOwner.question_permission_check(question, request.user)
+    #
+    #     answer = self.get_object()
+    #     if answer:
+    #         serializer = self.get_serializer(answer)
+    #         return Response(serializer.data, status=status.HTTP_200_OK)
+    #     return Response(
+    #         {"error": "Didn't found answer with the given id"},
+    #         status=status.HTTP_400_BAD_REQUEST,
+    #     )
 
     def put(self, request, *args, **kwargs):
         """
@@ -323,22 +323,22 @@ class CommentsReadUpdateDeleteApiView(CommentsApiMixin, views.GenericAPIView):
     lookup_fields = ["question_pk", "comment_pk"]
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, *args, **kwargs):
-        """
-        GET request retrieve an answer with the given id.
-        """
-
-        question = self.get_question(self.kwargs)
-        IsOwner.question_permission_check(question, request.user)
-
-        comment = self.get_object()
-        if comment:
-            serializer = self.get_serializer(comment)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(
-            {"error": "Didn't found comment with the given id"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    # def get(self, request, *args, **kwargs):
+    #     """
+    #     GET request retrieve an answer with the given id.
+    #     """
+    #
+    #     question = self.get_question(self.kwargs)
+    #     IsOwner.question_permission_check(question, request.user)
+    #
+    #     comment = self.get_object()
+    #     if comment:
+    #         serializer = self.get_serializer(comment)
+    #         return Response(serializer.data, status=status.HTTP_200_OK)
+    #     return Response(
+    #         {"error": "Didn't found comment with the given id"},
+    #         status=status.HTTP_400_BAD_REQUEST,
+    #     )
 
     def put(self, request, *args, **kwargs):
         """

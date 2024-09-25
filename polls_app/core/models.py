@@ -2,7 +2,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from polls_app.accounts.models import AccountModel
-from polls_app.core.mixins import CreateUpdateOwnerMixin
+from polls_app.core.models_mixins import CreateUpdateOwnerMixin
 
 
 class ProductModel(CreateUpdateOwnerMixin):

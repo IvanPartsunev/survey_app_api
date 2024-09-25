@@ -1,11 +1,16 @@
-from rest_framework import permissions
+from rest_framework import exceptions
 
 
-class IsOwner(permissions.BasePermission):
-    """
-    Custom permission to only allow owners of an object to edit, view or delete it.
-    """
+class IsOwner:
 
-    def has_object_permission(self, request, view, obj):
-        return obj.owner_id == request.user.id
+    @staticmethod
+    def product_permission_check(product, user):
+        if product.owner != user:
+            raise exceptions.PermissionDenied()
+
+    @staticmethod
+    def question_permission_check(question, user):
+        if question.owner != user:
+            raise exceptions.PermissionDenied()
+
 

@@ -1,10 +1,12 @@
 from django.db import IntegrityError
+from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework import generics as views
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from polls_app.core.mixins import AnswerCommentsCreateMixin
+from polls_app.core.views_mixins import AnswerCommentsCreateMixin, AnswersApiMixin, CommentsApiMixin
+from polls_app.core.models import ProductModel, QuestionModel
 from polls_app.core.permissions import IsOwner
 from polls_app.core.selectors import ProductsSelector, QuestionSelector, AnswerSelector, CommentSelector
 from polls_app.core.serializers import QuestionListSerializer, ProductListSerializer, ProductReadDeleteSerializer, \
@@ -13,7 +15,7 @@ from polls_app.core.serializers import QuestionListSerializer, ProductListSerial
 
 
 class ProductsListApiView(views.GenericAPIView):
-    permission_classes = [IsAuthenticated, IsOwner]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         """
@@ -47,7 +49,7 @@ class ProductsListApiView(views.GenericAPIView):
 
 
 class ProductsApiView(views.GenericAPIView):
-    permission_classes = [IsAuthenticated, IsOwner]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         """
@@ -62,19 +64,24 @@ class ProductsApiView(views.GenericAPIView):
         """
         PUT request edit product with the given id.
         """
+        try:
+            partial = kwargs.pop('partial', False)
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
 
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+            if getattr(instance, '_prefetched_objects_cache', None):
+                # If 'prefetch_related' has been applied to a queryset, we need to
+                # forcibly invalidate the prefetch cache on the instance.
+                instance._prefetched_objects_cache = {}
 
-        if getattr(instance, '_prefetched_objects_cache', None):
-            # If 'prefetch_related' has been applied to a queryset, we need to
-            # forcibly invalidate the prefetch cache on the instance.
-            instance._prefetched_objects_cache = {}
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except IntegrityError:
+            return Response(
+                {"error": "Didn't found product with the given id"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     def delete(self, request, *args, **kwargs):
         """
@@ -98,7 +105,7 @@ class ProductsApiView(views.GenericAPIView):
 
 
 class QuestionsListApiView(views.GenericAPIView):
-    permission_classes = [IsAuthenticated, IsOwner]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         """
@@ -115,9 +122,13 @@ class QuestionsListApiView(views.GenericAPIView):
         ***Allowed types: "Single choice", "Multiple choices".
         """
 
+        product = get_object_or_404(ProductModel, id=self.kwargs.get("product_pk"))
+        IsOwner.product_permission_check(product, request.user)
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(owner=self.request.user, product_id=self.kwargs.get("product_pk"))
+        serializer.save(owner=self.request.user, product=product)
+
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def get_queryset(self):
@@ -134,7 +145,7 @@ class QuestionsListApiView(views.GenericAPIView):
 
 class QuestionsApiView(views.GenericAPIView):
     lookup_fields = ["product_pk", "question_pk"]
-    permission_classes = [IsAuthenticated, IsOwner]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         """
@@ -155,7 +166,6 @@ class QuestionsApiView(views.GenericAPIView):
         PUT request edit question with the given id.
         """
         try:
-
             instance = self.get_object()
             serializer = self.get_serializer(instance, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
@@ -218,23 +228,9 @@ class QuestionsApiView(views.GenericAPIView):
             return QuestionCreateUpdateSerializer
 
 
-class AnswersApiView(views.GenericAPIView):
+class AnswersCreateApiView(views.GenericAPIView, AnswersApiMixin, AnswerCommentsCreateMixin):
     lookup_fields = ["question_pk", "answer_pk"]
-    permission_classes = [IsAuthenticated, IsOwner]
-
-    def get_object(self):
-        queryset = self.get_queryset()
-        answer_id = self.kwargs.get("answer_pk")
-        answer = queryset.filter(id=answer_id).first()
-        return answer
-
-    def get_queryset(self):
-        selector = AnswerSelector(self.kwargs.get("question_pk"))
-        queryset = selector.get_queryset()
-        return queryset
-
-
-class AnswersCreateApiView(AnswersApiView, AnswerCommentsCreateMixin):
+    permission_classes = [IsAuthenticated]
     serializer_class = AnswerCreateUpdateSerializer
 
     def post(self, request, *args, **kwargs):
@@ -244,11 +240,16 @@ class AnswersCreateApiView(AnswersApiView, AnswerCommentsCreateMixin):
         return super().post(request, *args, **kwargs)
 
 
-class AnswersReadUpdateDeleteApiView(AnswersApiView):
+class AnswersReadUpdateDeleteApiView(AnswersApiMixin, views.GenericAPIView):
+    lookup_fields = ["question_pk", "answer_pk"]
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, *args, **kwargs):
         """
         GET request retrieve an answer with the given id.
         """
+        question = self.get_question(self.kwargs)
+        IsOwner.question_permission_check(question, request.user)
 
         answer = self.get_object()
         if answer:
@@ -264,6 +265,10 @@ class AnswersReadUpdateDeleteApiView(AnswersApiView):
         PUT request edit an answer with the given id.
         """
         try:
+
+            question = self.get_question(self.kwargs)
+            IsOwner.question_permission_check(question, request.user)
+
             instance = self.get_object()
             serializer = self.get_serializer(instance, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
@@ -279,6 +284,9 @@ class AnswersReadUpdateDeleteApiView(AnswersApiView):
         """
         DELETE request delete an answer with the given id.
         """
+
+        question = self.get_question(self.kwargs)
+        IsOwner.question_permission_check(question, request.user)
 
         question = self.get_object()
         if question:
@@ -299,23 +307,9 @@ class AnswersReadUpdateDeleteApiView(AnswersApiView):
             return AnswerCreateUpdateSerializer
 
 
-class CommentsApiView(views.GenericAPIView):
-    lookup_fields = ["product_pk", "question_pk", "comment_pk"]
-    permission_classes = [IsAuthenticated, IsOwner]
-
-    def get_object(self):
-        queryset = self.get_queryset()
-        comment_id = self.kwargs.get("comment_pk")
-        comment = queryset.filter(id=comment_id).first()
-        return comment
-
-    def get_queryset(self):
-        selector = CommentSelector(self.kwargs.get("question_pk"))
-        queryset = selector.get_queryset()
-        return queryset
-
-
-class CommentsCreateApiView(CommentsApiView, AnswerCommentsCreateMixin):
+class CommentsCreateApiView(views.GenericAPIView, AnswerCommentsCreateMixin):
+    lookup_fields = ["question_pk", "comment_pk"]
+    permission_classes = [IsAuthenticated]
     serializer_class = CommentCreateUpdateSerializer
 
     def post(self, request, *args, **kwargs):
@@ -325,11 +319,17 @@ class CommentsCreateApiView(CommentsApiView, AnswerCommentsCreateMixin):
         return super().post(request, *args, **kwargs)
 
 
-class CommentsReadUpdateDeleteApiView(CommentsApiView):
+class CommentsReadUpdateDeleteApiView(CommentsApiMixin, views.GenericAPIView):
+    lookup_fields = ["question_pk", "comment_pk"]
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, *args, **kwargs):
         """
         GET request retrieve an answer with the given id.
         """
+
+        question = self.get_question(self.kwargs)
+        IsOwner.question_permission_check(question, request.user)
 
         comment = self.get_object()
         if comment:
@@ -346,6 +346,10 @@ class CommentsReadUpdateDeleteApiView(CommentsApiView):
         """
 
         try:
+
+            question = self.get_question(self.kwargs)
+            IsOwner.question_permission_check(question, request.user)
+
             instance = self.get_object()
             serializer = self.get_serializer(instance, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
@@ -361,6 +365,9 @@ class CommentsReadUpdateDeleteApiView(CommentsApiView):
         """
         DELETE request delete an answer with the given id.
         """
+
+        question = self.get_question(self.kwargs)
+        IsOwner.question_permission_check(question, request.user)
 
         comment = self.get_object()
         if comment:

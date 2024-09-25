@@ -25,19 +25,19 @@ services:
     depends_on:
       - postgresql
 
-  polls-app:
-    build: ./
-    container_name: polls_app
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./:/polls_app
-    env_file:
-      - ./env/django.env
-    stdin_open: true
-    tty: true
-    depends_on:
-      - postgresql
+#  polls-app:
+#    build: ./
+#    container_name: polls_app
+#    ports:
+#      - "8000:8000"
+#    volumes:
+#      - ./:/polls_app
+#    env_file:
+#      - ./env/django.env
+#    stdin_open: true
+#    tty: true
+#    depends_on:
+#      - postgresql
 
 volumes:
   db_data:

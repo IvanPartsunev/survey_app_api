@@ -9,12 +9,12 @@ from polls_app.core.views_mixins import AnswerCommentsCreateMixin, AnswersApiMix
 from polls_app.core.models import ProductModel, QuestionModel
 from polls_app.core.permissions import IsOwner
 from polls_app.core.selectors import ProductsSelector, QuestionSelector, AnswerSelector, CommentSelector
-from polls_app.core.serializers import QuestionListSerializer, ProductListSerializer, ProductReadDeleteSerializer, \
-    QuestionReadDeleteSerializer, QuestionCreateUpdateSerializer, ProductCreateUpdateSerializer, \
+from polls_app.core.serializers import QuestionListSerializer, ProductListDisplaySerializer, \
+    QuestionReadDeleteSerializer, QuestionCreateUpdateSerializer, ProductCreateUpdateDeleteSerializer, \
     AnswerReadDeleteSerializer, AnswerCreateUpdateSerializer, CommentCreateUpdateSerializer, CommentReadDeleteSerializer
 
 
-class ProductsListApiView(views.GenericAPIView):
+class ProductsListCreateApiView(views.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -42,13 +42,13 @@ class ProductsListApiView(views.GenericAPIView):
         return queryset
 
     def get_serializer_class(self):
-        if self.request.method.lower() in ["get", "delete"]:
-            return ProductListSerializer
-        elif self.request.method.lower() == "post":
-            return ProductCreateUpdateSerializer
+        if self.request.method.lower() == "get":
+            return ProductListDisplaySerializer
+
+        return ProductCreateUpdateDeleteSerializer
 
 
-class ProductsApiView(views.GenericAPIView):
+class ProductRetrieveUpdateDeleteApiView(views.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -98,10 +98,9 @@ class ProductsApiView(views.GenericAPIView):
         return queryset
 
     def get_serializer_class(self):
-        if self.request.method.lower() in ["get", "delete"]:
-            return ProductListSerializer
-        elif self.request.method.lower() == "put":
-            return ProductCreateUpdateSerializer
+        if self.request.method.lower() in "get":
+            return ProductListDisplaySerializer
+        return ProductCreateUpdateDeleteSerializer
 
 
 class QuestionsListApiView(views.GenericAPIView):

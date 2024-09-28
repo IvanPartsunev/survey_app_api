@@ -8,7 +8,8 @@ class ProductsSelector:
         self.user = user
 
     def get_queryset(self):
-        queryset = ProductModel.objects.filter(owner=self.user).prefetch_related("questions")
+        queryset = (ProductModel.objects.filter(owner=self.user)
+                    .prefetch_related("questions", "questions__question_answers", "questions__question_comments"))
         return queryset
 
 

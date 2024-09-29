@@ -84,7 +84,7 @@ class QuestionCreateSerializer(serializers.ModelSerializer):
             "question_text",
         ]
 
-class QuestionDisplayUpdateDeleteSerializer(serializers.ModelSerializer):
+class QuestionUpdateDeleteSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
 
     class Meta:

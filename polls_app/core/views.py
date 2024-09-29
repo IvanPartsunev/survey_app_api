@@ -106,6 +106,7 @@ class ProductRetrieveUpdateDeleteApiView(views.GenericAPIView):
 
 class QuestionCreateApiView(views.GenericAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = QuestionCreateSerializer
 
     def post(self, request, *args, **kwargs):
         """
@@ -125,20 +126,8 @@ class QuestionCreateApiView(views.GenericAPIView):
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def get_queryset(self):
-        selector = QuestionSelector(self.request.user, self.kwargs.get("product_pk"))
-        queryset = selector.get_queryset()
-        return queryset
-
-    def get_serializer_class(self):
-        if self.request.method.lower() in ["get", "delete"]:
-            return QuestionListSerializer
-        elif self.request.method.lower() == "post":
-            return QuestionCreateSerializer
-
 
 class QuestionsApiView(views.GenericAPIView):
-    lookup_fields = ["product_pk", "question_pk"]
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):

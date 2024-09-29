@@ -55,7 +55,7 @@ class QuestionListSerializer(serializers.ModelSerializer):
         ]
 
 
-class QuestionReadDeleteSerializer(serializers.ModelSerializer):
+class QuestionRetrieveSerializer(serializers.ModelSerializer):
     answers = AnswerReadDeleteSerializer(many=True, source="question_answers")
     comments = CommentReadDeleteSerializer(many=True, source="question_comments", required=False)
 
@@ -71,10 +71,26 @@ class QuestionReadDeleteSerializer(serializers.ModelSerializer):
         ]
 
 
-class QuestionCreateUpdateSerializer(serializers.ModelSerializer):
+class QuestionCreateSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(read_only=True)
+    product_id = serializers.IntegerField(write_only=True)
+
     class Meta:
         model = QuestionModel
         fields = [
+            "id",
+            "product_id",
+            "question_type",
+            "question_text",
+        ]
+
+class QuestionDisplayUpdateDeleteSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = QuestionModel
+        fields = [
+            "id",
             "question_type",
             "question_text",
         ]
@@ -92,7 +108,7 @@ class ProductCreateUpdateDeleteSerializer(serializers.ModelSerializer):
 
 
 class ProductListDisplaySerializer(serializers.ModelSerializer):
-    product_questions = QuestionReadDeleteSerializer(many=True, source="questions")
+    product_questions = QuestionRetrieveSerializer(many=True, source="questions")
 
     class Meta:
         model = ProductModel

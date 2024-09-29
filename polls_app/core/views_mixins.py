@@ -3,7 +3,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from polls_app.core.models import QuestionModel
-from polls_app.core.permissions import IsOwner
+from polls_app.core.permissions import is_owner
 from polls_app.core.selectors import AnswerSelector, CommentSelector
 
 
@@ -48,7 +48,7 @@ class AnswerCommentsCreateMixin:
     def post(self, request, *args, **kwargs):
 
         question = QuestionGetMixin.get_question(self.kwargs)
-        IsOwner.question_permission_check(question, request.user)
+        is_owner(question, request.user)
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)

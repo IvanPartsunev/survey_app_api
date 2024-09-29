@@ -55,7 +55,7 @@ class QuestionListSerializer(serializers.ModelSerializer):
         ]
 
 
-class QuestionReadDeleteSerializer(serializers.ModelSerializer):
+class QuestionRetrieveSerializer(serializers.ModelSerializer):
     answers = AnswerReadDeleteSerializer(many=True, source="question_answers")
     comments = CommentReadDeleteSerializer(many=True, source="question_comments", required=False)
 
@@ -71,17 +71,44 @@ class QuestionReadDeleteSerializer(serializers.ModelSerializer):
         ]
 
 
-class QuestionCreateUpdateSerializer(serializers.ModelSerializer):
+class QuestionCreateSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(read_only=True)
+    product_id = serializers.IntegerField(write_only=True)
+
     class Meta:
         model = QuestionModel
         fields = [
+            "id",
+            "product_id",
+            "question_type",
+            "question_text",
+        ]
+
+class QuestionUpdateDeleteSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = QuestionModel
+        fields = [
+            "id",
             "question_type",
             "question_text",
         ]
 
 
-class ProductReadDeleteSerializer(serializers.ModelSerializer):
-    product_questions = QuestionListSerializer(many=True, source="questions")
+class ProductCreateUpdateDeleteSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = ProductModel
+        fields = [
+            "id",
+            "name",
+        ]
+
+
+class ProductListDisplaySerializer(serializers.ModelSerializer):
+    product_questions = QuestionRetrieveSerializer(many=True, source="questions")
 
     class Meta:
         model = ProductModel
@@ -91,23 +118,4 @@ class ProductReadDeleteSerializer(serializers.ModelSerializer):
             "created_on",
             "edited_on",
             "product_questions",
-        ]
-
-
-class ProductCreateUpdateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProductModel
-        fields = [
-            "name",
-        ]
-
-
-class ProductListSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProductModel
-        fields = [
-            "pk",
-            "name",
-            "created_on",
-            "edited_on",
         ]

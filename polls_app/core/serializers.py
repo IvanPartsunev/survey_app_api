@@ -3,10 +3,13 @@ from rest_framework import serializers
 from polls_app.core.models import QuestionModel, AnswerModel, CommentModel, ProductModel
 
 
-class AnswerCreateUpdateSerializer(serializers.ModelSerializer):
+class AnswerCreateSerializer(serializers.ModelSerializer):
+    question_id = serializers.IntegerField(write_only=True)
+
     class Meta:
         model = AnswerModel
         fields = [
+            "question_id",
             "answer_text",
         ]
 

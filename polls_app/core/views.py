@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework import generics as views
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from yaml import serialize
 
 from polls_app.core.permissions import is_owner
 from polls_app.core.services import get_object_and_check_permission_service
@@ -12,7 +13,7 @@ from polls_app.core.models import ProductModel, QuestionModel
 from polls_app.core.selectors import ProductsSelector, QuestionSelector, AnswerSelector, CommentSelector
 from polls_app.core.serializers import QuestionListSerializer, ProductListDisplaySerializer, \
     QuestionRetrieveSerializer, QuestionCreateSerializer, ProductCreateUpdateDeleteSerializer, \
-    AnswerReadDeleteSerializer, AnswerCreateUpdateSerializer, CommentCreateUpdateSerializer, \
+    AnswerReadDeleteSerializer, AnswerCreateSerializer, CommentCreateUpdateSerializer, \
     CommentReadDeleteSerializer, QuestionUpdateDeleteSerializer
 
 
@@ -213,15 +214,22 @@ class QuestionRetrieveUpdateDeleteApiView(views.GenericAPIView):
 
 
 class AnswersCreateApiView(views.GenericAPIView, AnswersApiMixin, AnswerCommentsCreateMixin):
-    lookup_fields = ["question_pk", "answer_pk"]
     permission_classes = [IsAuthenticated]
-    serializer_class = AnswerCreateUpdateSerializer
+    serializer_class = AnswerCreateSerializer
 
     def post(self, request, *args, **kwargs):
         """
         POST request CREATE an answer for the question.
         """
-        return super().post(request, *args, **kwargs)
+        serializer = self.get_serializer()
+        serializer.is_valid(raise_exception=True)
+        question_id = serializer.initial_data.get("question_id")
+
+        question = get_object_and_check_permission_service("core", "questionmodel", question_id, None)
+
+        serializer.save(question=question)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class AnswersReadUpdateDeleteApiView(AnswersApiMixin, views.GenericAPIView):
@@ -292,7 +300,7 @@ class AnswersReadUpdateDeleteApiView(AnswersApiMixin, views.GenericAPIView):
         if self.request.method.lower() in ["get", "delete"]:
             return AnswerReadDeleteSerializer
         elif self.request.method.lower() == "put":
-            return AnswerCreateUpdateSerializer
+            return AnswerCreateSerializer
 
 
 class CommentsCreateApiView(views.GenericAPIView, AnswerCommentsCreateMixin):

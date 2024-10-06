@@ -195,13 +195,6 @@ class QuestionRetrieveUpdateDeleteApiView(views.GenericAPIView):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    def get_object(self):
-        queryset = self.get_queryset()
-        question_id = self.kwargs.get("pk")
-        question = queryset.filter(id=question_id).first()
-
-        return question
-
     def get_queryset(self):
         selector = QuestionSelector(self.request.user, self.kwargs.get("pk"), self.request.method)
         queryset = selector.get_queryset()

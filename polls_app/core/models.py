@@ -2,7 +2,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from polls_app.accounts.models import AccountModel
-from polls_app.core.models_mixins import CreateUpdateOwnerMixin
+from polls_app.core.models_mixins import CreateUpdateOwnerMixin, UserModel
 
 
 class ProductModel(CreateUpdateOwnerMixin):
@@ -50,6 +50,12 @@ class AnswerModel(CreateUpdateOwnerMixin):
         on_delete=models.CASCADE,
         related_name="question_answers"
         )
+
+    owner = models.ForeignKey(
+        UserModel,
+        on_delete=models.CASCADE,
+        related_name="user_answers",
+    )
 
     def __str__(self):
         return self.answer_text

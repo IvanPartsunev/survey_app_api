@@ -51,12 +51,6 @@ class AnswerModel(CreateUpdateOwnerMixin):
         related_name="question_answers"
         )
 
-    owner = models.ForeignKey(
-        UserModel,
-        on_delete=models.CASCADE,
-        related_name="user_answers",
-    )
-
     def __str__(self):
         return self.answer_text
 
@@ -68,6 +62,8 @@ class CommentModel(CreateUpdateOwnerMixin):
         on_delete=models.CASCADE,
         related_name="question_comments"
     )
+
+    owner = models.IntegerField(max_length=30)
 
     def __str__(self):
         return self.comment_text

@@ -97,6 +97,7 @@ class ProductRetrieveUpdateDeleteApiView(views.GenericAPIView):
 
         instance = self.get_object()
         instance.delete()
+
         return Response(
             {"message": "Successfully deleted"},
             status=status.HTTP_200_OK,
@@ -104,7 +105,7 @@ class ProductRetrieveUpdateDeleteApiView(views.GenericAPIView):
 
     def get_queryset(self):
         selector = ProductsSelector(self.request.user)
-        queryset = selector.get_queryset().select_related("owner").prefetch_related("questions")
+        queryset = selector.get_queryset()
         return queryset
 
     def get_serializer_class(self):
@@ -184,16 +185,12 @@ class QuestionRetrieveUpdateDeleteApiView(views.GenericAPIView):
         DELETE request delete question with the given id.
         """
 
-        question = self.get_object()
-        if question:
-            question.delete()
-            return Response(
-                {"message": "Successfully deleted"},
-                status=status.HTTP_200_OK,
-            )
+        instance = self.get_object()
+        instance.delete()
+
         return Response(
-            {"error": "Didn't found question with the given id"},
-            status=status.HTTP_400_BAD_REQUEST,
+            {"message": "Successfully deleted"},
+            status=status.HTTP_200_OK,
         )
 
     def get_queryset(self):
@@ -261,16 +258,12 @@ class AnswersReadUpdateDeleteApiView(views.GenericAPIView):
         DELETE request delete answer with the given id.
         """
 
-        answer = self.get_object()
-        if answer:
-            answer.delete()
-            return Response(
-                {"message": "Successfully deleted"},
-                status=status.HTTP_200_OK,
-            )
+        instance = self.get_object()
+        instance.delete()
+
         return Response(
-            {"error": "Didn't found answer with the given id"},
-            status=status.HTTP_400_BAD_REQUEST,
+            {"message": "Successfully deleted"},
+            status=status.HTTP_200_OK,
         )
 
 
@@ -329,14 +322,11 @@ class CommentsUpdateDeleteApiView(views.GenericAPIView):
         DELETE request delete answer with the given id.
         """
 
-        comment = self.get_object()
-        if comment:
-            comment.delete()
-            return Response(
-                {"message": "Successfully deleted"},
-                status=status.HTTP_200_OK,
-            )
+        instance = self.get_object()
+        instance.delete()
+
         return Response(
-            {"error": "Didn't found comment with the given id"},
-            status=status.HTTP_400_BAD_REQUEST,
+            {"message": "Successfully deleted"},
+            status=status.HTTP_200_OK,
         )
+

@@ -17,6 +17,10 @@ class ProductModel(CreateUpdateMixin):
         on_delete=models.CASCADE
     )
 
+    @classmethod
+    def class_name(cls):
+        return "Product"
+
 
 class QuestionModel(CreateUpdateMixin):
     class QuestionType(models.TextChoices):
@@ -49,6 +53,10 @@ class QuestionModel(CreateUpdateMixin):
         on_delete=models.CASCADE
     )
 
+    @classmethod
+    def class_name(cls):
+        return "Question"
+
     def __str__(self):
         return self.question_text
 
@@ -68,6 +76,10 @@ class AnswerModel(CreateUpdateMixin):
         on_delete=models.CASCADE
     )
 
+    @classmethod
+    def class_name(cls):
+        return "Answer"
+
     def __str__(self):
         return self.answer_text
 
@@ -84,6 +96,10 @@ class CommentModel(CreateUpdateMixin):
         max_length=30,
         default="Unknown"
     )
+
+    @classmethod
+    def class_name(cls):
+        return "Comment"
 
     def __str__(self):
         return self.comment_text

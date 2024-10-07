@@ -2,7 +2,7 @@ from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework import generics as views
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from yaml import serialize
 
@@ -219,7 +219,9 @@ class AnswersCreateApiView(views.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         question_id = serializer.initial_data.get("question_id")
 
-        serializer.save(question_id=question_id, owner=request.user)
+        question = get_object_and_check_permission_service("core", "questionmodel", question_id, request.user)
+
+        serializer.save(question=question, owner=request.user)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -273,7 +275,7 @@ class AnswersReadUpdateDeleteApiView(views.GenericAPIView):
 
 
 class CommentsCreateApiView(views.GenericAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     serializer_class = CommentCreateSerializer
 
     def post(self, request, *args, **kwargs):
@@ -284,14 +286,14 @@ class CommentsCreateApiView(views.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         question_id = serializer.initial_data.get("question_id")
 
-        # question = get_object_and_check_permission_service("core", "commentmodel", question_id, None)
+        question = get_object_and_check_permission_service("core", "questionmodel", question_id, None)
 
-        serializer.save(question_id=question_id)
+        serializer.save(question=question)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class CommentsReadUpdateDeleteApiView(views.GenericAPIView):
+class CommentsUpdateDeleteApiView(views.GenericAPIView):
     serializer_class = CommentUpdateDeleteSerializer
     permission_classes = [IsAuthenticated]
 

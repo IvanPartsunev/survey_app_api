@@ -1,7 +1,7 @@
 from django.urls import path
 
 from polls_app.core.views import ProductsListCreateApiView, ProductRetrieveUpdateDeleteApiView, QuestionRetrieveUpdateDeleteApiView, QuestionCreateApiView, \
-    AnswersCreateApiView, AnswersReadUpdateDeleteApiView, CommentsCreateApiView, CommentsReadUpdateDeleteApiView
+    AnswersCreateApiView, AnswersReadUpdateDeleteApiView, CommentsCreateApiView, CommentsUpdateDeleteApiView
 
 urlpatterns = (
     path("products/", ProductsListCreateApiView.as_view(), name="products"),
@@ -11,5 +11,5 @@ urlpatterns = (
     path("answers/", AnswersCreateApiView.as_view(), name="answer"),
     path("answers/<int:answer_pk>", AnswersReadUpdateDeleteApiView.as_view(), name="answers"),
     path("comments/", CommentsCreateApiView.as_view(), name="comment"),
-    path("comments/<int:comment_pk>/", CommentsReadUpdateDeleteApiView.as_view(), name="comments"),
+    path("comments/<int:comment_pk>/", CommentsUpdateDeleteApiView.as_view(), name="comments"),
 )

@@ -56,9 +56,9 @@ class ProductRetrieveUpdateDeleteApiView(views.GenericAPIView):
         serializer = self.get_serializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def put(self, request, *args, **kwargs):
+    def patch(self, request, *args, **kwargs):
         """
-        PUT request edit product with the given id.
+        Patch request edit product with the given id.
         """
 
         partial = kwargs.pop('partial', False)
@@ -141,9 +141,9 @@ class QuestionRetrieveUpdateDeleteApiView(views.GenericAPIView):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    def put(self, request, *args, **kwargs):
+    def patch(self, request, *args, **kwargs):
         """
-        PUT request edit question with the given id.
+        Patch request edit question with the given id.
         """
 
         instance = self.get_object()
@@ -208,9 +208,9 @@ class AnswersReadUpdateDeleteApiView(views.GenericAPIView):
     serializer_class = AnswerUpdateDeleteSerializer
     permission_classes = [IsAuthenticated]
 
-    def put(self, request, *args, **kwargs):
+    def patch(self, request, *args, **kwargs):
         """
-        PUT request edit an answer with the given id.
+        Patch request edit an answer with the given id.
         """
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
@@ -264,9 +264,9 @@ class CommentsUpdateDeleteApiView(views.GenericAPIView):
     serializer_class = CommentUpdateDeleteSerializer
     permission_classes = [IsAuthenticated]
 
-    def put(self, request, *args, **kwargs):
+    def patch(self, request, *args, **kwargs):
         """
-        PUT request edit a comment with the given id.
+        Patch request edit a comment with the given id.
         """
 
 

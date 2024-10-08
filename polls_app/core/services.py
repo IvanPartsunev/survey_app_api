@@ -16,8 +16,9 @@ def get_object_and_check_permission_service(app_label, model_name, obj_id, user)
     try:
         current_object = model_class.objects.get(id=obj_id)
     except model_class.DoesNotExist:
-        raise Http404(f"Object of {model_class.__name__} with the given ID does not exists.")
+        raise Http404(f"{model_class.class_name()} with the given ID does not exists.")
 
-    is_owner(current_object, user)
+    if user:
+        is_owner(current_object, user)
 
     return current_object

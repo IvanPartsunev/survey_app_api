@@ -3,40 +3,65 @@ from rest_framework import serializers
 from polls_app.core.models import QuestionModel, AnswerModel, CommentModel, ProductModel
 
 
-class AnswerCreateUpdateSerializer(serializers.ModelSerializer):
+class CommentCreateSerializer(serializers.ModelSerializer):
+    question_id = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = CommentModel
+        fields = [
+            "question_id",
+            "created_by",
+            "comment_text",
+        ]
+
+
+class CommentUpdateDeleteSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CommentModel
+        fields = [
+            "comment_text",
+        ]
+
+
+class CommentRetrieveSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CommentModel
+        fields = [
+            "pk",
+            "comment_text",
+            "created_on",
+            "edited_on",
+            "created_by",
+        ]
+
+
+class AnswerCreateSerializer(serializers.ModelSerializer):
+    question_id = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = AnswerModel
+        fields = [
+            "question_id",
+            "answer_text",
+        ]
+
+
+class AnswerUpdateDeleteSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = AnswerModel
         fields = [
             "answer_text",
         ]
 
-
-class AnswerReadDeleteSerializer(serializers.ModelSerializer):
+class AnswerRetrieveSerializer(serializers.ModelSerializer):
     class Meta:
         model = AnswerModel
         fields = [
             "pk",
             "answer_text",
             "votes",
-            "created_on",
-            "edited_on",
-        ]
-
-
-class CommentCreateUpdateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CommentModel
-        fields = [
-            "comment_text",
-        ]
-
-
-class CommentReadDeleteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CommentModel
-        fields = [
-            "pk",
-            "comment_text",
             "created_on",
             "edited_on",
         ]
@@ -56,8 +81,8 @@ class QuestionListSerializer(serializers.ModelSerializer):
 
 
 class QuestionRetrieveSerializer(serializers.ModelSerializer):
-    answers = AnswerReadDeleteSerializer(many=True, source="question_answers")
-    comments = CommentReadDeleteSerializer(many=True, source="question_comments", required=False)
+    answers = AnswerRetrieveSerializer(many=True, source="question_answers")
+    comments = CommentRetrieveSerializer(many=True, source="question_comments", required=False)
 
     class Meta:
         model = QuestionModel

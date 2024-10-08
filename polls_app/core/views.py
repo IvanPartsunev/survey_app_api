@@ -1,19 +1,16 @@
 from django.db import IntegrityError
-from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework import generics as views
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
-from polls_app.core.permissions import is_owner
+from polls_app.core.models import AnswerModel, CommentModel
 from polls_app.core.services import get_object_and_check_permission_service
-from polls_app.core.views_mixins import AnswerCommentsCreateMixin, AnswersApiMixin, CommentsApiMixin
-from polls_app.core.models import ProductModel, QuestionModel
-from polls_app.core.selectors import ProductsSelector, QuestionSelector, AnswerSelector, CommentSelector
-from polls_app.core.serializers import QuestionListSerializer, ProductListDisplaySerializer, \
-    QuestionRetrieveSerializer, QuestionCreateSerializer, ProductCreateUpdateDeleteSerializer, \
-    AnswerReadDeleteSerializer, AnswerCreateUpdateSerializer, CommentCreateUpdateSerializer, \
-    CommentReadDeleteSerializer, QuestionUpdateDeleteSerializer
+from polls_app.core.selectors import ProductsSelector, QuestionSelector
+from polls_app.core.serializers import ProductListDisplaySerializer, QuestionRetrieveSerializer, \
+    QuestionCreateSerializer, ProductCreateUpdateDeleteSerializer, AnswerCreateSerializer, CommentCreateSerializer, \
+    QuestionUpdateDeleteSerializer, AnswerUpdateDeleteSerializer, CommentUpdateDeleteSerializer
+from polls_app.core.views_mixins import UpdateDeleteMixin
 
 
 class ProductsListCreateApiView(views.GenericAPIView):
@@ -26,6 +23,7 @@ class ProductsListCreateApiView(views.GenericAPIView):
 
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
+
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
@@ -49,7 +47,7 @@ class ProductsListCreateApiView(views.GenericAPIView):
         return ProductCreateUpdateDeleteSerializer
 
 
-class ProductRetrieveUpdateDeleteApiView(views.GenericAPIView):
+class ProductRetrieveUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -59,50 +57,24 @@ class ProductRetrieveUpdateDeleteApiView(views.GenericAPIView):
 
         instance = self.get_object()
         serializer = self.get_serializer(instance)
+
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def put(self, request, *args, **kwargs):
+    def patch(self, request, *args, **kwargs):
         """
-        PUT request edit product with the given id.
+        Patch request edit product with the given id.
         """
-        try:
-            partial = kwargs.pop('partial', False)
-            instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data, partial=partial)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-
-            if getattr(instance, '_prefetched_objects_cache', None):
-                # If 'prefetch_related' has been applied to a queryset, we need to
-                # forcibly invalidate the prefetch cache on the instance.
-                instance._prefetched_objects_cache = {}
-
-            return Response(
-                {"message": "Product successfully updated", "data": serializer.data},
-                status=status.HTTP_200_OK,
-            )
-
-        except IntegrityError:
-            return Response(
-                {"error": "Product with the given ID does not exist"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        return super().patch(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
         """
         DELETE product with the given id.
         """
-
-        instance = self.get_object()
-        instance.delete()
-        return Response(
-            {"message": "Successfully deleted"},
-            status=status.HTTP_200_OK,
-        )
+        return super().delete(request, *args, **kwargs)
 
     def get_queryset(self):
         selector = ProductsSelector(self.request.user)
-        queryset = selector.get_queryset().select_related("owner").prefetch_related("questions")
+        queryset = selector.get_queryset()
         return queryset
 
     def get_serializer_class(self):
@@ -134,7 +106,7 @@ class QuestionCreateApiView(views.GenericAPIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class QuestionRetrieveUpdateDeleteApiView(views.GenericAPIView):
+class QuestionRetrieveUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -143,63 +115,21 @@ class QuestionRetrieveUpdateDeleteApiView(views.GenericAPIView):
         """
 
         question = self.get_object()
-        if question:
-            serializer = self.get_serializer(question)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(
-            {"error": "Didn't found question with the given id"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        serializer = self.get_serializer(question)
 
-    def put(self, request, *args, **kwargs):
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, *args, **kwargs):
         """
-        PUT request edit question with the given id.
+        Patch request edit question with the given id.
         """
-        try:
-            instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-
-            if getattr(instance, '_prefetched_objects_cache', None):
-                # If 'prefetch_related' has been applied to a queryset, we need to
-                # forcibly invalidate the prefetch cache on the instance.
-                instance._prefetched_objects_cache = {}
-
-            return Response(
-                {"message": "Question successfully updated.", "data": serializer.data},
-                status = status.HTTP_200_OK,
-            )
-
-        except IntegrityError:
-            return Response(
-                {"error": "Didn't found question with the given id"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        return super().patch(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
         """
         DELETE request delete question with the given id.
         """
-
-        question = self.get_object()
-        if question:
-            question.delete()
-            return Response(
-                {"message": "Successfully deleted"},
-                status=status.HTTP_200_OK,
-            )
-        return Response(
-            {"error": "Didn't found question with the given id"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    def get_object(self):
-        queryset = self.get_queryset()
-        question_id = self.kwargs.get("pk")
-        question = queryset.filter(id=question_id).first()
-
-        return question
+        return super().delete(request, *args, **kwargs)
 
     def get_queryset(self):
         selector = QuestionSelector(self.request.user, self.kwargs.get("pk"), self.request.method)
@@ -212,169 +142,77 @@ class QuestionRetrieveUpdateDeleteApiView(views.GenericAPIView):
         return QuestionUpdateDeleteSerializer
 
 
-class AnswersCreateApiView(views.GenericAPIView, AnswersApiMixin, AnswerCommentsCreateMixin):
-    lookup_fields = ["question_pk", "answer_pk"]
+class AnswersCreateApiView(views.GenericAPIView):
+    queryset = AnswerModel.objects.all()
+    serializer_class = AnswerCreateSerializer
     permission_classes = [IsAuthenticated]
-    serializer_class = AnswerCreateUpdateSerializer
 
     def post(self, request, *args, **kwargs):
         """
         POST request CREATE an answer for the question.
         """
-        return super().post(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        question_id = serializer.initial_data.get("question_id")
+
+        question = get_object_and_check_permission_service("core", "questionmodel", question_id, request.user)
+
+        serializer.save(question=question, owner=request.user)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class AnswersReadUpdateDeleteApiView(AnswersApiMixin, views.GenericAPIView):
-    lookup_fields = ["question_pk", "answer_pk"]
+class AnswersReadUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView):
+    queryset = AnswerModel.objects.all()
+    serializer_class = AnswerUpdateDeleteSerializer
     permission_classes = [IsAuthenticated]
 
-    # def get(self, request, *args, **kwargs):
-    #     """
-    #     GET request retrieve an answer with the given id.
-    #     """
-    #     question = self.get_question(self.kwargs)
-    #     IsOwner.question_permission_check(question, request.user)
-    #
-    #     answer = self.get_object()
-    #     if answer:
-    #         serializer = self.get_serializer(answer)
-    #         return Response(serializer.data, status=status.HTTP_200_OK)
-    #     return Response(
-    #         {"error": "Didn't found answer with the given id"},
-    #         status=status.HTTP_400_BAD_REQUEST,
-    #     )
-
-    def put(self, request, *args, **kwargs):
+    def patch(self, request, *args, **kwargs):
         """
-        PUT request edit an answer with the given id.
+        Patch request edit an answer with the given id.
         """
-        try:
-
-            question = self.get_question(self.kwargs)
-            IsOwner.question_permission_check(question, request.user)
-
-            instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(
-                {"message": "Answer successfully updated.", "data": serializer.data},
-                status=status.HTTP_200_OK,
-            )
-
-        except IntegrityError:
-            return Response(
-                {"error": "Didn't found answer with the given id"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        return super().patch(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
         """
-        DELETE request delete an answer with the given id.
+        DELETE request delete answer with the given id.
         """
-
-        question = self.get_question(self.kwargs)
-        IsOwner.question_permission_check(question, request.user)
-
-        question = self.get_object()
-        if question:
-            question.delete()
-            return Response(
-                {"message": "Successfully deleted"},
-                status=status.HTTP_200_OK,
-            )
-        return Response(
-            {"error": "Didn't found answer with the given id"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    def get_serializer_class(self):
-        if self.request.method.lower() in ["get", "delete"]:
-            return AnswerReadDeleteSerializer
-        elif self.request.method.lower() == "put":
-            return AnswerCreateUpdateSerializer
+        return super().delete(request, *args, **kwargs)
 
 
-class CommentsCreateApiView(views.GenericAPIView, AnswerCommentsCreateMixin):
-    lookup_fields = ["question_pk", "comment_pk"]
-    permission_classes = [IsAuthenticated]
-    serializer_class = CommentCreateUpdateSerializer
+class CommentsCreateApiView(views.GenericAPIView):
+    queryset = CommentModel.objects.all()
+    permission_classes = [AllowAny]
+    serializer_class = CommentCreateSerializer
 
     def post(self, request, *args, **kwargs):
         """
         POST request CREATE a comment for the question.
         """
-        return super().post(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        question_id = serializer.initial_data.get("question_id")
+
+        question = get_object_and_check_permission_service("core", "questionmodel", question_id, None)
+
+        serializer.save(question=question)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class CommentsReadUpdateDeleteApiView(CommentsApiMixin, views.GenericAPIView):
-    lookup_fields = ["question_pk", "comment_pk"]
+class CommentsUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView):
+    queryset = CommentModel.objects.all()
+    serializer_class = CommentUpdateDeleteSerializer
     permission_classes = [IsAuthenticated]
 
-    # def get(self, request, *args, **kwargs):
-    #     """
-    #     GET request retrieve an answer with the given id.
-    #     """
-    #
-    #     question = self.get_question(self.kwargs)
-    #     IsOwner.question_permission_check(question, request.user)
-    #
-    #     comment = self.get_object()
-    #     if comment:
-    #         serializer = self.get_serializer(comment)
-    #         return Response(serializer.data, status=status.HTTP_200_OK)
-    #     return Response(
-    #         {"error": "Didn't found comment with the given id"},
-    #         status=status.HTTP_400_BAD_REQUEST,
-    #     )
-
-    def put(self, request, *args, **kwargs):
+    def patch(self, request, *args, **kwargs):
         """
-        PUT request edit an answer with the given id.
+        Patch request edit a comment with the given id.
         """
-
-        try:
-
-            question = self.get_question(self.kwargs)
-            IsOwner.question_permission_check(question, request.user)
-
-            instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(
-                {"message": "Comment successfully updated.", "data": serializer.data},
-                status=status.HTTP_200_OK,
-            )
-
-        except IntegrityError:
-            return Response(
-                {"error": "Didn't found comment with the given id"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        return super().patch(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
         """
-        DELETE request delete an answer with the given id.
+        DELETE request delete answer with the given id.
         """
-
-        question = self.get_question(self.kwargs)
-        IsOwner.question_permission_check(question, request.user)
-
-        comment = self.get_object()
-        if comment:
-            comment.delete()
-            return Response(
-                {"message": "Successfully deleted"},
-                status=status.HTTP_200_OK,
-            )
-        return Response(
-            {"error": "Didn't found comment with the given id"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    def get_serializer_class(self):
-        if self.request.method.lower() in ["get", "delete"]:
-            return CommentReadDeleteSerializer
-        elif self.request.method.lower() == "put":
-            return CommentCreateUpdateSerializer
+        return super().delete(request, *args, **kwargs)

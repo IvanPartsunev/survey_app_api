@@ -4,6 +4,7 @@ from rest_framework import generics as views
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
+from polls_app.core.models import AnswerModel, CommentModel
 from polls_app.core.services import get_object_and_check_permission_service
 from polls_app.core.selectors import ProductsSelector, QuestionSelector
 from polls_app.core.serializers import ProductListDisplaySerializer, QuestionRetrieveSerializer, \
@@ -142,6 +143,7 @@ class QuestionRetrieveUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIVie
 
 
 class AnswersCreateApiView(views.GenericAPIView):
+    queryset = AnswerModel.objects.all()
     serializer_class = AnswerCreateSerializer
     permission_classes = [IsAuthenticated]
 
@@ -161,6 +163,7 @@ class AnswersCreateApiView(views.GenericAPIView):
 
 
 class AnswersReadUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView):
+    queryset = AnswerModel.objects.all()
     serializer_class = AnswerUpdateDeleteSerializer
     permission_classes = [IsAuthenticated]
 
@@ -178,6 +181,7 @@ class AnswersReadUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView):
 
 
 class CommentsCreateApiView(views.GenericAPIView):
+    queryset = CommentModel.objects.all()
     permission_classes = [AllowAny]
     serializer_class = CommentCreateSerializer
 
@@ -197,6 +201,7 @@ class CommentsCreateApiView(views.GenericAPIView):
 
 
 class CommentsUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView):
+    queryset = CommentModel.objects.all()
     serializer_class = CommentUpdateDeleteSerializer
     permission_classes = [IsAuthenticated]
 

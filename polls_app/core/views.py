@@ -9,6 +9,7 @@ from polls_app.core.selectors import ProductsSelector, QuestionSelector
 from polls_app.core.serializers import ProductListDisplaySerializer, QuestionRetrieveSerializer, \
     QuestionCreateSerializer, ProductCreateUpdateDeleteSerializer, AnswerCreateSerializer, CommentCreateSerializer, \
     QuestionUpdateDeleteSerializer, AnswerUpdateDeleteSerializer, CommentUpdateDeleteSerializer
+from polls_app.core.views_mixins import UpdateDeleteMixin
 
 
 class ProductsListCreateApiView(views.GenericAPIView):
@@ -44,7 +45,7 @@ class ProductsListCreateApiView(views.GenericAPIView):
         return ProductCreateUpdateDeleteSerializer
 
 
-class ProductRetrieveUpdateDeleteApiView(views.GenericAPIView):
+class ProductRetrieveUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -60,35 +61,13 @@ class ProductRetrieveUpdateDeleteApiView(views.GenericAPIView):
         """
         Patch request edit product with the given id.
         """
-
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-
-        if getattr(instance, '_prefetched_objects_cache', None):
-            # If 'prefetch_related' has been applied to a queryset, we need to
-            # forcibly invalidate the prefetch cache on the instance.
-            instance._prefetched_objects_cache = {}
-
-        return Response(
-            {"message": "Product successfully updated", "data": serializer.data},
-            status=status.HTTP_200_OK,
-        )
+        return super().patch(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
         """
         DELETE product with the given id.
         """
-
-        instance = self.get_object()
-        instance.delete()
-
-        return Response(
-            {"message": "Successfully deleted"},
-            status=status.HTTP_200_OK,
-        )
+        return super().delete(request, *args, **kwargs)
 
     def get_queryset(self):
         selector = ProductsSelector(self.request.user)
@@ -124,7 +103,7 @@ class QuestionCreateApiView(views.GenericAPIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class QuestionRetrieveUpdateDeleteApiView(views.GenericAPIView):
+class QuestionRetrieveUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
@@ -145,34 +124,13 @@ class QuestionRetrieveUpdateDeleteApiView(views.GenericAPIView):
         """
         Patch request edit question with the given id.
         """
-
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-
-        if getattr(instance, '_prefetched_objects_cache', None):
-            # If 'prefetch_related' has been applied to a queryset, we need to
-            # forcibly invalidate the prefetch cache on the instance.
-            instance._prefetched_objects_cache = {}
-
-        return Response(
-            {"message": "Question successfully updated.", "data": serializer.data},
-            status=status.HTTP_200_OK,
-        )
+        return super().patch(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
         """
         DELETE request delete question with the given id.
         """
-
-        instance = self.get_object()
-        instance.delete()
-
-        return Response(
-            {"message": "Successfully deleted"},
-            status=status.HTTP_200_OK,
-        )
+        return super().delete(request, *args, **kwargs)
 
     def get_queryset(self):
         selector = QuestionSelector(self.request.user, self.kwargs.get("pk"), self.request.method)
@@ -204,7 +162,7 @@ class AnswersCreateApiView(views.GenericAPIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class AnswersReadUpdateDeleteApiView(views.GenericAPIView):
+class AnswersReadUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView):
     serializer_class = AnswerUpdateDeleteSerializer
     permission_classes = [IsAuthenticated]
 
@@ -212,33 +170,13 @@ class AnswersReadUpdateDeleteApiView(views.GenericAPIView):
         """
         Patch request edit an answer with the given id.
         """
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-
-        if getattr(instance, '_prefetched_objects_cache', None):
-            # If 'prefetch_related' has been applied to a queryset, we need to
-            # forcibly invalidate the prefetch cache on the instance.
-            instance._prefetched_objects_cache = {}
-
-        return Response(
-            {"message": "Answer successfully updated.", "data": serializer.data},
-            status=status.HTTP_200_OK,
-        )
+        return super().patch(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
         """
         DELETE request delete answer with the given id.
         """
-
-        instance = self.get_object()
-        instance.delete()
-
-        return Response(
-            {"message": "Successfully deleted"},
-            status=status.HTTP_200_OK,
-        )
+        return super().delete(request, *args, **kwargs)
 
 
 class CommentsCreateApiView(views.GenericAPIView):
@@ -260,7 +198,7 @@ class CommentsCreateApiView(views.GenericAPIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class CommentsUpdateDeleteApiView(views.GenericAPIView):
+class CommentsUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView):
     serializer_class = CommentUpdateDeleteSerializer
     permission_classes = [IsAuthenticated]
 
@@ -268,32 +206,10 @@ class CommentsUpdateDeleteApiView(views.GenericAPIView):
         """
         Patch request edit a comment with the given id.
         """
-
-
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-
-        if getattr(instance, '_prefetched_objects_cache', None):
-            # If 'prefetch_related' has been applied to a queryset, we need to
-            # forcibly invalidate the prefetch cache on the instance.
-            instance._prefetched_objects_cache = {}
-
-        return Response(
-            {"message": "Comment successfully updated.", "data": serializer.data},
-            status=status.HTTP_200_OK,
-        )
+        return super().patch(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
         """
         DELETE request delete answer with the given id.
         """
-
-        instance = self.get_object()
-        instance.delete()
-
-        return Response(
-            {"message": "Successfully deleted"},
-            status=status.HTTP_200_OK,
-        )
+        return super().delete(request, *args, **kwargs)

@@ -22,6 +22,7 @@ class ProductsListCreateApiView(views.GenericAPIView):
 
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
+
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
@@ -55,6 +56,7 @@ class ProductRetrieveUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView
 
         instance = self.get_object()
         serializer = self.get_serializer(instance)
+
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def patch(self, request, *args, **kwargs):
@@ -112,13 +114,9 @@ class QuestionRetrieveUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIVie
         """
 
         question = self.get_object()
-        if question:
-            serializer = self.get_serializer(question)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(
-            {"error": "Didn't found question with the given id"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        serializer = self.get_serializer(question)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def patch(self, request, *args, **kwargs):
         """

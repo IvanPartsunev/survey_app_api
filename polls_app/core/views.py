@@ -1,21 +1,14 @@
 from django.db import IntegrityError
-from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework import generics as views
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from yaml import serialize
 
-from polls_app.core.permissions import is_owner
 from polls_app.core.services import get_object_and_check_permission_service
-from polls_app.core.views_mixins import AnswerCommentsCreateMixin, AnswersApiMixin, CommentsApiMixin
-from polls_app.core.models import ProductModel, QuestionModel
-from polls_app.core.selectors import ProductsSelector, QuestionSelector, AnswerSelector, CommentSelector
-from polls_app.core.serializers import QuestionListSerializer, ProductListDisplaySerializer, \
-    QuestionRetrieveSerializer, QuestionCreateSerializer, ProductCreateUpdateDeleteSerializer, \
-    AnswerRetrieveSerializer, AnswerCreateSerializer, CommentCreateSerializer, \
-    CommentRetrieveSerializer, QuestionUpdateDeleteSerializer, AnswerUpdateDeleteSerializer, \
-    CommentUpdateDeleteSerializer
+from polls_app.core.selectors import ProductsSelector, QuestionSelector
+from polls_app.core.serializers import ProductListDisplaySerializer, QuestionRetrieveSerializer, \
+    QuestionCreateSerializer, ProductCreateUpdateDeleteSerializer, AnswerCreateSerializer, CommentCreateSerializer, \
+    QuestionUpdateDeleteSerializer, AnswerUpdateDeleteSerializer, CommentUpdateDeleteSerializer
 
 
 class ProductsListCreateApiView(views.GenericAPIView):
@@ -67,28 +60,22 @@ class ProductRetrieveUpdateDeleteApiView(views.GenericAPIView):
         """
         PUT request edit product with the given id.
         """
-        try:
-            partial = kwargs.pop('partial', False)
-            instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data, partial=partial)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
 
-            if getattr(instance, '_prefetched_objects_cache', None):
-                # If 'prefetch_related' has been applied to a queryset, we need to
-                # forcibly invalidate the prefetch cache on the instance.
-                instance._prefetched_objects_cache = {}
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
-            return Response(
-                {"message": "Product successfully updated", "data": serializer.data},
-                status=status.HTTP_200_OK,
-            )
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
 
-        except IntegrityError:
-            return Response(
-                {"error": "Product with the given ID does not exist"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        return Response(
+            {"message": "Product successfully updated", "data": serializer.data},
+            status=status.HTTP_200_OK,
+        )
 
     def delete(self, request, *args, **kwargs):
         """
@@ -158,27 +145,21 @@ class QuestionRetrieveUpdateDeleteApiView(views.GenericAPIView):
         """
         PUT request edit question with the given id.
         """
-        try:
-            instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
 
-            if getattr(instance, '_prefetched_objects_cache', None):
-                # If 'prefetch_related' has been applied to a queryset, we need to
-                # forcibly invalidate the prefetch cache on the instance.
-                instance._prefetched_objects_cache = {}
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
-            return Response(
-                {"message": "Question successfully updated.", "data": serializer.data},
-                status = status.HTTP_200_OK,
-            )
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
 
-        except IntegrityError:
-            return Response(
-                {"error": "Didn't found question with the given id"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        return Response(
+            {"message": "Question successfully updated.", "data": serializer.data},
+            status=status.HTTP_200_OK,
+        )
 
     def delete(self, request, *args, **kwargs):
         """
@@ -231,27 +212,20 @@ class AnswersReadUpdateDeleteApiView(views.GenericAPIView):
         """
         PUT request edit an answer with the given id.
         """
-        try:
-            instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
-            if getattr(instance, '_prefetched_objects_cache', None):
-                # If 'prefetch_related' has been applied to a queryset, we need to
-                # forcibly invalidate the prefetch cache on the instance.
-                instance._prefetched_objects_cache = {}
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
 
-            return Response(
-                {"message": "Answer successfully updated.", "data": serializer.data},
-                status=status.HTTP_200_OK,
-            )
-
-        except IntegrityError:
-            return Response(
-                {"error": "Didn't found answer with the given id"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        return Response(
+            {"message": "Answer successfully updated.", "data": serializer.data},
+            status=status.HTTP_200_OK,
+        )
 
     def delete(self, request, *args, **kwargs):
         """
@@ -295,27 +269,21 @@ class CommentsUpdateDeleteApiView(views.GenericAPIView):
         PUT request edit a comment with the given id.
         """
 
-        try:
-            instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
 
-            if getattr(instance, '_prefetched_objects_cache', None):
-                # If 'prefetch_related' has been applied to a queryset, we need to
-                # forcibly invalidate the prefetch cache on the instance.
-                instance._prefetched_objects_cache = {}
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
-            return Response(
-                {"message": "Comment successfully updated.", "data": serializer.data},
-                status=status.HTTP_200_OK,
-            )
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
 
-        except IntegrityError:
-            return Response(
-                {"error": "Didn't found comment with the given id"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        return Response(
+            {"message": "Comment successfully updated.", "data": serializer.data},
+            status=status.HTTP_200_OK,
+        )
 
     def delete(self, request, *args, **kwargs):
         """
@@ -329,4 +297,3 @@ class CommentsUpdateDeleteApiView(views.GenericAPIView):
             {"message": "Successfully deleted"},
             status=status.HTTP_200_OK,
         )
-

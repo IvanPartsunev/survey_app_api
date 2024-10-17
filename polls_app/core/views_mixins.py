@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 from polls_app.core.models import QuestionModel
 from polls_app.core.permissions import is_owner
+from polls_app.core.services import get_object_and_check_permission_service
 
 
 class UpdateDeleteMixin:
@@ -35,3 +36,18 @@ class UpdateDeleteMixin:
             {"message": "Successfully deleted"},
             status=status.HTTP_204_NO_CONTENT,
         )
+
+
+class AnswersCommentsPostMixin:
+
+    def post(self, request, *args, **kwargs):
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        question_id = serializer.initial_data.get("question_id")
+
+        question = get_object_and_check_permission_service("core", "questionmodel", question_id, None)
+
+        serializer.save(question=question)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

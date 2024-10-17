@@ -1,4 +1,3 @@
-from django.db import IntegrityError
 from rest_framework import status
 from rest_framework import generics as views
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -10,7 +9,7 @@ from polls_app.core.selectors import ProductsSelector, QuestionSelector
 from polls_app.core.serializers import ProductListDisplaySerializer, QuestionRetrieveSerializer, \
     QuestionCreateSerializer, ProductCreateUpdateDeleteSerializer, AnswerCreateSerializer, CommentCreateSerializer, \
     QuestionUpdateDeleteSerializer, AnswerUpdateDeleteSerializer, CommentUpdateDeleteSerializer
-from polls_app.core.views_mixins import UpdateDeleteMixin
+from polls_app.core.views_mixins import UpdateDeleteMixin, AnswersCommentsPostMixin
 
 
 class ProductsListCreateApiView(views.GenericAPIView):
@@ -142,7 +141,7 @@ class QuestionRetrieveUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIVie
         return QuestionUpdateDeleteSerializer
 
 
-class AnswersCreateApiView(views.GenericAPIView):
+class AnswersCreateApiView(AnswersCommentsPostMixin, views.GenericAPIView):
     queryset = AnswerModel.objects.all()
     serializer_class = AnswerCreateSerializer
     permission_classes = [IsAuthenticated]
@@ -151,15 +150,7 @@ class AnswersCreateApiView(views.GenericAPIView):
         """
         POST request CREATE an answer for the question.
         """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        question_id = serializer.initial_data.get("question_id")
-
-        question = get_object_and_check_permission_service("core", "questionmodel", question_id, request.user)
-
-        serializer.save(question=question, owner=request.user)
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return super().post(request, *args, **kwargs)
 
 
 class AnswersReadUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView):
@@ -180,7 +171,7 @@ class AnswersReadUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView):
         return super().delete(request, *args, **kwargs)
 
 
-class CommentsCreateApiView(views.GenericAPIView):
+class CommentsCreateApiView(AnswersCommentsPostMixin, views.GenericAPIView):
     queryset = CommentModel.objects.all()
     permission_classes = [AllowAny]
     serializer_class = CommentCreateSerializer
@@ -189,15 +180,7 @@ class CommentsCreateApiView(views.GenericAPIView):
         """
         POST request CREATE a comment for the question.
         """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        question_id = serializer.initial_data.get("question_id")
-
-        question = get_object_and_check_permission_service("core", "questionmodel", question_id, None)
-
-        serializer.save(question=question)
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return super().post(request, *args, **kwargs)
 
 
 class CommentsUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView):

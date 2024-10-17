@@ -9,7 +9,7 @@ urlpatterns = (
     path("questions/", QuestionCreateApiView.as_view(), name="question"),
     path("questions/<int:pk>/", QuestionRetrieveUpdateDeleteApiView.as_view(), name="question"),
     path("answers/", AnswersCreateApiView.as_view(), name="answer"),
-    path("answers/<int:pk>", AnswersUpdateDeleteApiView.as_view(), name="answers"),
+    path("answers/<int:pk>/", AnswersUpdateDeleteApiView.as_view(), name="answers"),
     path("comments/", CommentsCreateApiView.as_view(), name="comment"),
     path("comments/<int:pk>/", CommentsUpdateDeleteApiView.as_view(), name="comments"),
 )

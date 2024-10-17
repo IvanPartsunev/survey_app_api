@@ -42,7 +42,7 @@ class CoreViewsTests(APITestCase):
             question=self.question,
             answer_text="Sample Answer",
             votes=0,
-            owner = self.user
+            owner = self.user,
         )
 
         self.comment = CommentModel.objects.create(
@@ -186,128 +186,46 @@ class CoreViewsTests(APITestCase):
         # Verify the question has been deleted
         self.assertFalse(QuestionModel.objects.filter(pk=self.question.pk).exists())
 
-    # def test_update_question_assert_success(self):
-    #     self.authenticate()
-    #
-    #     url = reverse("question_rud", args=[self.question.id])
-    #     response = self.client.put(url, self.data, format="json")
-    #
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-    #
-    #     self.question.refresh_from_db()
-    #     self.answer.refresh_from_db()
-    #
-    #     self.assertEqual(self.question.question_text, "Updated Question")
-    #     self.assertEqual(self.answer.answer_text, "Updated Answer")
-    #     self.assertEqual(self.answer.votes, 5)
-    #
-    # def test_update_question_create_new_answer_assert_success(self):
-    #     self.authenticate()
-    #
-    #     new_data = {
-    #         "question_type": "Text",
-    #         "question_text": "Updated Question Again",
-    #         "is_active": True,
-    #         "answers": [
-    #             {
-    #                 "answer_text": "New Answer",
-    #                 "votes": 10
-    #             }
-    #         ]
-    #     }
-    #
-    #     url = reverse("question_rud", args=[self.question.id])
-    #     response = self.client.put(url, new_data, format="json")
-    #
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-    #
-    #     new_answer = AnswerModel.objects.get(answer_text="New Answer")
-    #     self.assertEqual(new_answer.answer_text, "New Answer")
-    #     self.assertEqual(new_answer.votes, 10)
-    #
-    # def test_update_question_create_new_answer_assert_error(self):
-    #     self.authenticate()
-    #
-    #     user_2 = UserModel.objects.create_user(
-    #         email="test2@test.com",
-    #         username="testuser2",
-    #         password="testpassword",
-    #         is_active=True
-    #     )
-    #
-    #     product_2 = ProductModel.objects.create(
-    #         name="Product2 test name",
-    #         owner=user_2,
-    #     )
-    #
-    #     question_2 = QuestionModel.objects.create(
-    #         owner=user_2,
-    #         question_type="Text",
-    #         question_text="Sample Question",
-    #         is_active=True,
-    #         product=product_2,
-    #     )
-    #
-    #     self.answer = AnswerModel.objects.create(
-    #         question=question_2,
-    #         answer_text="Sample Answer 2",
-    #         votes=0
-    #     )
-    #
-    #     new_data = {
-    #         "question_type": "Text",
-    #         "question_text": "Updated Question Again",
-    #         "is_active": True,
-    #         "answers": [
-    #             {
-    #                 "pk": self.answer.pk,
-    #                 "answer_text": "New Answer",
-    #                 "votes": 10
-    #             }
-    #         ]
-    #     }
-    #
-    #     url = reverse("question_rud", args=[self.question.id])
-    #     response = self.client.put(url, new_data, format="json")
-    #
-    #     self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
-    #     self.assertEqual(response.data["error"],
-    #                      "Answer with this Primary key already exists for another user. "
-    #                      "No pk should be provided when creating new answer.")
-    #
-    # def test_comment_create_assert_success(self):
-    #     self.authenticate()
-    #
-    #     new_data = {
-    #         "comment": "New Comment",
-    #         "context": {
-    #             "question_pk": self.question.pk
-    #         }
-    #     }
-    #
-    #     url = reverse("comment_create_list")
-    #     response = self.client.post(url, new_data, format="json")
-    #
-    #     pk = response.data.get("pk")
-    #     new_comment = CommentModel.objects.get(pk=pk)
-    #
-    #     self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-    #
-    #     self.assertEqual(new_comment.comment, "New Comment")
-    #
-    # def test_comment_create_question_does_not_exists_assert_application_error(self):
-    #     self.authenticate()
-    #
-    #     new_data = {
-    #         "comment": "New Comment",
-    #         "context": {
-    #             "question_pk": 0
-    #         }
-    #     }
-    #
-    #     url = reverse("comment_create_list")
-    #
-    #     with self.assertRaises(ApplicationError) as context:
-    #         self.client.post(url, new_data, format="json")
-    #
-    #     self.assertIn("Question with provided pk does not exists.", str(context.exception))
+    def test_create_answer(self):
+        self.authenticate()
+
+        data = {
+            "question_id": self.question.pk,
+            "answer_text": "New Sample Answer",
+        }
+
+        response = self.client.post('/answers/', data=data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Verify the new answer has been created
+        self.assertEqual(response.data['answer_text'], data['answer_text'])
+
+        # Ensure the answer is linked to the question
+        answer = AnswerModel.objects.get(pk=response.data['id'])
+        self.assertEqual(answer.question.pk, self.question.pk)
+
+    def test_update_answer(self):
+        self.authenticate()
+
+        data = {
+            "answer_text": "Updated Answer Text"
+        }
+
+        response = self.client.patch(f'/answers/{self.answer.id}/', data=data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Verify that the answer has been updated
+        self.answer.refresh_from_db()  # Refresh from the database
+        self.assertEqual(self.answer.answer_text, data['answer_text'])
+
+    def test_delete_answer(self):
+        self.authenticate()
+
+        response = self.client.delete(f'/answers/{self.answer.pk}/')
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        # Verify the answer has been deleted
+        self.assertFalse(AnswerModel.objects.filter(pk=self.answer.pk).exists())

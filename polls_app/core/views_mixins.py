@@ -10,7 +10,9 @@ from polls_app.core.services import get_object_and_check_permission_service
 class UpdateDeleteMixin:
 
     def patch(self, request, *args, **kwargs):
-
+        """
+        PATCH request edit an object with the given id.
+        """
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -26,9 +28,10 @@ class UpdateDeleteMixin:
             status=status.HTTP_200_OK,
         )
 
-
     def delete(self, request, *args, **kwargs):
-
+        """
+        DELETE request delete and object with the given id.
+        """
         instance = self.get_object()
         instance.delete()
 
@@ -41,7 +44,9 @@ class UpdateDeleteMixin:
 class AnswersCommentsPostMixin:
 
     def post(self, request, *args, **kwargs):
-
+        """
+        POST request CREATE an object for the question.
+        """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         question_id = serializer.initial_data.get("question_id")

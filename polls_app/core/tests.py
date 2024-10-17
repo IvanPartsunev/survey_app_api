@@ -116,6 +116,76 @@ class CoreViewsTests(APITestCase):
         # Verify the product has been deleted
         self.assertFalse(ProductModel.objects.filter(pk=self.product.pk).exists())
 
+    def test_create_question(self):
+        self.authenticate()
+
+        data = {
+            "product_id": self.product.pk,
+            "question_type": "Single choice",
+            "question_text": "New Sample Question"
+        }
+
+        response = self.client.post('/questions/', data=data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Verify the new question has been created
+        self.assertEqual(response.data['question_text'], data['question_text'])
+        self.assertEqual(response.data['question_type'], data['question_type'])
+        self.assertIsNotNone(response.data['id'])
+
+        # Ensure the question is linked to the product
+        question = QuestionModel.objects.get(pk=response.data['id'])
+        self.assertEqual(question.product.pk, self.product.pk)
+
+    def test_retrieve_question(self):
+        self.authenticate()
+
+        response = self.client.get(f'/questions/{self.question.pk}/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Verify the question details
+        self.assertEqual(response.data['question_text'], self.question.question_text)
+        self.assertEqual(response.data['pk'], self.question.pk)
+
+        # Check if answers and comments are included
+        self.assertIn('answers', response.data)
+        self.assertIn('comments', response.data)
+        self.assertEqual(len(response.data['answers']), 1)  # One answer linked to this question
+        self.assertEqual(len(response.data['comments']), 1) # One comment linked to this question
+
+    def test_update_question(self):
+        # Authenticate the user
+        self.authenticate()
+
+        # Data to update the question
+        data = {
+            "question_text": "Updated Question Text",
+            "question_type": "Multiple choices"
+        }
+
+        # Make a PATCH request to update the question
+        response = self.client.patch(f'/questions/{self.question.pk}/', data=data, format='json')
+
+        # Check response status
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Verify the question has been updated
+        self.question.refresh_from_db()
+        self.assertEqual(self.question.question_text, data['question_text'])
+        self.assertEqual(self.question.question_type, data['question_type'])
+
+    def test_delete_question(self):
+        self.authenticate()
+
+        response = self.client.delete(f'/questions/{self.question.pk}/')
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        # Verify the question has been deleted
+        self.assertFalse(QuestionModel.objects.filter(pk=self.question.pk).exists())
+
     # def test_update_question_assert_success(self):
     #     self.authenticate()
     #

@@ -42,6 +42,7 @@ class AnswerCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = AnswerModel
         fields = [
+            "id",
             "question_id",
             "answer_text",
         ]

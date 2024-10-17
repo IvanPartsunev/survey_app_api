@@ -16,8 +16,8 @@ class CoreViewsTests(APITestCase):
     def setUp(self):
         self.user = UserModel.objects.create_user(
             email="test@test.com",
-            username='testuser',
-            password='testpassword',
+            username="testuser",
+            password="testpassword",
             is_active=True
         )
 
@@ -32,21 +32,22 @@ class CoreViewsTests(APITestCase):
 
         self.question = QuestionModel.objects.create(
             owner=self.user,
-            question_type='Text',
-            question_text='Sample Question',
+            question_type="Text",
+            question_text="Sample Question",
             is_active=True,
             product=self.product,
         )
 
         self.answer = AnswerModel.objects.create(
             question=self.question,
-            answer_text='Sample Answer',
-            votes=0
+            answer_text="Sample Answer",
+            votes=0,
+            owner = self.user,
         )
 
         self.comment = CommentModel.objects.create(
             question=self.question,
-            comment='Sample Comment'
+            comment_text="Sample Comment"
         )
 
         self.data = {
@@ -72,130 +73,159 @@ class CoreViewsTests(APITestCase):
         }
 
     def authenticate(self):
-        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.access_token)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + self.access_token)
 
-    def test_update_question_assert_success(self):
+    def test_list_products(self):
         self.authenticate()
 
-        url = reverse('question_rud', args=[self.question.id])
-        response = self.client.put(url, self.data, format='json')
+        response = self.client.get("/products/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        self.question.refresh_from_db()
-        self.answer.refresh_from_db()
+        # Verify the response contains the product
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["name"], self.product.name)
+        self.assertEqual(response.data[0]["pk"], self.product.pk)
 
-        self.assertEqual(self.question.question_text, "Updated Question")
-        self.assertEqual(self.answer.answer_text, "Updated Answer")
-        self.assertEqual(self.answer.votes, 5)
+        # Check if product_questions data is present
+        self.assertIn("product_questions", response.data[0])
+        self.assertEqual(len(response.data[0]["product_questions"]), 1)
 
-    def test_update_question_create_new_answer_assert_success(self):
+    def test_update_product(self):
         self.authenticate()
 
-        new_data = {
-            "question_type": "Text",
-            "question_text": "Updated Question Again",
-            "is_active": True,
-            "answers": [
-                {
-                    "answer_text": "New Answer",
-                    "votes": 10
-                }
-            ]
+        data = {
+            "name": "Updated Product Name"
         }
 
-        url = reverse('question_rud', args=[self.question.id])
-        response = self.client.put(url, new_data, format='json')
+        response = self.client.patch(f"/products/{self.product.pk}/", data=data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        new_answer = AnswerModel.objects.get(answer_text="New Answer")
-        self.assertEqual(new_answer.answer_text, "New Answer")
-        self.assertEqual(new_answer.votes, 10)
+        # Verify the product has been updated
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.name, data["name"])
 
-    def test_update_question_create_new_answer_assert_error(self):
+    def test_delete_product(self):
         self.authenticate()
 
-        user_2 = UserModel.objects.create_user(
-            email="test2@test.com",
-            username='testuser2',
-            password='testpassword',
-            is_active=True
-        )
+        response = self.client.delete(f"/products/{self.product.pk}/")
 
-        product_2 = ProductModel.objects.create(
-            name="Product2 test name",
-            owner=user_2,
-        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-        question_2 = QuestionModel.objects.create(
-            owner=user_2,
-            question_type='Text',
-            question_text='Sample Question',
-            is_active=True,
-            product=product_2,
-        )
+        # Verify the product has been deleted
+        self.assertFalse(ProductModel.objects.filter(pk=self.product.pk).exists())
 
-        self.answer = AnswerModel.objects.create(
-            question=question_2,
-            answer_text='Sample Answer 2',
-            votes=0
-        )
-
-        new_data = {
-            "question_type": "Text",
-            "question_text": "Updated Question Again",
-            "is_active": True,
-            "answers": [
-                {
-                    "pk": self.answer.pk,
-                    "answer_text": "New Answer",
-                    "votes": 10
-                }
-            ]
-        }
-
-        url = reverse('question_rud', args=[self.question.id])
-        response = self.client.put(url, new_data, format='json')
-
-        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
-        self.assertEqual(response.data['error'],
-                         "Answer with this Primary key already exists for another user. "
-                         "No pk should be provided when creating new answer.")
-
-    def test_comment_create_assert_success(self):
+    def test_create_question(self):
         self.authenticate()
 
-        new_data = {
-            "comment": "New Comment",
-            "context": {
-                "question_pk": self.question.pk
-            }
+        data = {
+            "product_id": self.product.pk,
+            "question_type": "Single choice",
+            "question_text": "New Sample Question"
         }
 
-        url = reverse('comment_create_list')
-        response = self.client.post(url, new_data, format='json')
-
-        pk = response.data.get("pk")
-        new_comment = CommentModel.objects.get(pk=pk)
+        response = self.client.post('/questions/', data=data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        self.assertEqual(new_comment.comment, "New Comment")
+        # Verify the new question has been created
+        self.assertEqual(response.data['question_text'], data['question_text'])
+        self.assertEqual(response.data['question_type'], data['question_type'])
+        self.assertIsNotNone(response.data['id'])
 
-    def test_comment_create_question_does_not_exists_assert_application_error(self):
+        # Ensure the question is linked to the product
+        question = QuestionModel.objects.get(pk=response.data['id'])
+        self.assertEqual(question.product.pk, self.product.pk)
+
+    def test_retrieve_question(self):
         self.authenticate()
 
-        new_data = {
-            "comment": "New Comment",
-            "context": {
-                "question_pk": 0
-            }
+        response = self.client.get(f'/questions/{self.question.pk}/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Verify the question details
+        self.assertEqual(response.data['question_text'], self.question.question_text)
+        self.assertEqual(response.data['pk'], self.question.pk)
+
+        # Check if answers and comments are included
+        self.assertIn('answers', response.data)
+        self.assertIn('comments', response.data)
+        self.assertEqual(len(response.data['answers']), 1)  # One answer linked to this question
+        self.assertEqual(len(response.data['comments']), 1) # One comment linked to this question
+
+    def test_update_question(self):
+        # Authenticate the user
+        self.authenticate()
+
+        # Data to update the question
+        data = {
+            "question_text": "Updated Question Text",
+            "question_type": "Multiple choices"
         }
 
-        url = reverse('comment_create_list')
+        # Make a PATCH request to update the question
+        response = self.client.patch(f'/questions/{self.question.pk}/', data=data, format='json')
 
-        with self.assertRaises(ApplicationError) as context:
-            self.client.post(url, new_data, format='json')
+        # Check response status
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        self.assertIn("Question with provided pk does not exists.", str(context.exception))
+        # Verify the question has been updated
+        self.question.refresh_from_db()
+        self.assertEqual(self.question.question_text, data['question_text'])
+        self.assertEqual(self.question.question_type, data['question_type'])
+
+    def test_delete_question(self):
+        self.authenticate()
+
+        response = self.client.delete(f'/questions/{self.question.pk}/')
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        # Verify the question has been deleted
+        self.assertFalse(QuestionModel.objects.filter(pk=self.question.pk).exists())
+
+    def test_create_answer(self):
+        self.authenticate()
+
+        data = {
+            "question_id": self.question.pk,
+            "answer_text": "New Sample Answer",
+        }
+
+        response = self.client.post('/answers/', data=data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Verify the new answer has been created
+        self.assertEqual(response.data['answer_text'], data['answer_text'])
+
+        # Ensure the answer is linked to the question
+        answer = AnswerModel.objects.get(pk=response.data['id'])
+        self.assertEqual(answer.question.pk, self.question.pk)
+
+    def test_update_answer(self):
+        self.authenticate()
+
+        data = {
+            "answer_text": "Updated Answer Text"
+        }
+
+        response = self.client.patch(f'/answers/{self.answer.id}/', data=data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Verify that the answer has been updated
+        self.answer.refresh_from_db()  # Refresh from the database
+        self.assertEqual(self.answer.answer_text, data['answer_text'])
+
+    def test_delete_answer(self):
+        self.authenticate()
+
+        response = self.client.delete(f'/answers/{self.answer.pk}/')
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        # Verify the answer has been deleted
+        self.assertFalse(AnswerModel.objects.filter(pk=self.answer.pk).exists())

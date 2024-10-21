@@ -30,26 +30,23 @@ def get_object_and_check_permission_service(app_label, model_name, obj_id, user)
     return current_object
 
 
-class AnonymousUserJWTService:
+def generate_comment_jwt_token_service(guest_id):
+    payload = {
+        "guest_id": guest_id,
+        "exp": timezone.now() + timedelta(hours=24),
+        "scope": "comment",
+    }
+    token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+    return token
 
-    @staticmethod
-    def generate_comment_jwt_token(guest_id):
-        payload = {
-            "guest_id": guest_id,
-            "exp": timezone.now() + timedelta(hours=24),
-            "scope": "comment",
-        }
-        token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
-        return token
 
-    @staticmethod
-    def decode_comment_jwt_token(token):
-        try:
-            payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-            if payload.get("scope") != "comment":
-                raise jwt.InvalidTokenError("Invalid scope for token")
-            return payload
-        except jwt.ExpiredSignatureError:
-            raise jwt.ExpiredSignatureError("Token has expired")
-        except jwt.InvalidTokenError:
-            raise jwt.InvalidTokenError("Invalid token")
+def decode_comment_jwt_token_service(token):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        if payload.get("scope") != "comment":
+            raise jwt.InvalidTokenError("Invalid scope for token")
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise jwt.ExpiredSignatureError("Token has expired")
+    except jwt.InvalidTokenError:
+        raise jwt.InvalidTokenError("Invalid token")

@@ -37,22 +37,3 @@ class UpdateDeleteMixin:
             status=status.HTTP_204_NO_CONTENT,
         )
 
-
-class AnswersCommentsPostMixin:
-
-    def post(self, request, *args, **kwargs):
-        """
-        POST request CREATE an object for the question.
-        """
-
-        user = request.user
-
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        question_id = serializer.initial_data.get("question_id")
-
-        question = get_object_and_check_permission_service("core", "questionmodel", question_id, None)
-
-        serializer.save(question=question, owner=user)
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED)

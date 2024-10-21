@@ -1,15 +1,18 @@
+import uuid
+from http.client import responses
+
 from rest_framework import status
 from rest_framework import generics as views
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
 from polls_app.core.models import AnswerModel, CommentModel
-from polls_app.core.services import get_object_and_check_permission_service
+from polls_app.core.services import get_object_and_check_permission_service, generate_comment_jwt_token_service
 from polls_app.core.selectors import ProductsSelector, QuestionSelector
 from polls_app.core.serializers import ProductListDisplaySerializer, QuestionRetrieveSerializer, \
     QuestionCreateSerializer, ProductCreateUpdateDeleteSerializer, AnswerCreateSerializer, CommentCreateSerializer, \
     QuestionUpdateDeleteSerializer, AnswerUpdateDeleteSerializer, CommentUpdateDeleteSerializer
-from polls_app.core.views_mixins import UpdateDeleteMixin, AnswersCommentsPostMixin
+from polls_app.core.views_mixins import UpdateDeleteMixin
 
 
 class ProductsListCreateApiView(views.GenericAPIView):
@@ -119,13 +122,30 @@ class QuestionRetrieveUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIVie
         return QuestionUpdateDeleteSerializer
 
 
-class AnswersCreateApiView(AnswersCommentsPostMixin, views.GenericAPIView):
+class AnswersCreateApiView(views.GenericAPIView):
     """
     This view creates answer for question. Question id should be provided as data in request.
     """
     queryset = AnswerModel.objects.all()
     serializer_class = AnswerCreateSerializer
     permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        """
+        POST request CREATE an answer for the question.
+        """
+
+        user = request.user
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        question_id = serializer.initial_data.get("question_id")
+
+        question = get_object_and_check_permission_service("core", "questionmodel", question_id, None)
+
+        serializer.save(question=question, owner=user)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class AnswersUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView):
@@ -137,13 +157,43 @@ class AnswersUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
 
-class CommentsCreateApiView(AnswersCommentsPostMixin, views.GenericAPIView):
+class CommentsCreateApiView(views.GenericAPIView):
     """
     This view creates comment for question. Question id should be provided as data in request.
     """
     queryset = CommentModel.objects.all()
     serializer_class = CommentCreateSerializer
     permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        created_by = None
+        token = None
+
+        if user.is_authenticated:
+            created_by = user.username
+        else:
+            guest_id = str(uuid.uuid4())
+            token = generate_comment_jwt_token_service(guest_id)
+
+            # In case of anonymous users, name should be provided in the request data
+            created_by = request.data.get("created_by", "Unknown")
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        question_id = serializer.initial_data.get("question_id")
+
+        question = get_object_and_check_permission_service("core", "questionmodel", question_id, None)
+
+        serializer.save(question=question, created_by=created_by)
+
+        response = Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        # If the user is anonymous, set the comment-specific token in cookies
+        if not user.is_authenticated:
+            response.set_cookie('comment_token', token, httponly=True, max_age=60 * 60 * 24)  # 1 day expiration
+
+        return response
 
 
 class CommentsUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView):

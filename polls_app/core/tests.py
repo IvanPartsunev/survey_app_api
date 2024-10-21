@@ -56,14 +56,14 @@ class CoreViewsTests(APITestCase):
             "is_active": True,
             "answers": [
                 {
-                    "pk": self.answer.id,
+                    "id": self.answer.id,
                     "answer_text": "Updated Answer",
                     "votes": 5
                 }
             ],
             "comments": [
                 {
-                    "pk": self.comment.id,
+                    "id": self.comment.id,
                     "comment": "Updated Comment",
                     "context": {
                         "question_pk": self.question.pk
@@ -85,7 +85,7 @@ class CoreViewsTests(APITestCase):
         # Verify the response contains the product
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]["name"], self.product.name)
-        self.assertEqual(response.data[0]["pk"], self.product.pk)
+        self.assertEqual(response.data[0]["id"], self.product.pk)
 
         # Check if product_questions data is present
         self.assertIn("product_questions", response.data[0])
@@ -147,7 +147,7 @@ class CoreViewsTests(APITestCase):
 
         # Verify the question details
         self.assertEqual(response.data['question_text'], self.question.question_text)
-        self.assertEqual(response.data['pk'], self.question.pk)
+        self.assertEqual(response.data['id'], self.question.pk)
 
         # Check if answers and comments are included
         self.assertIn('answers', response.data)

@@ -9,6 +9,7 @@ class CommentCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = CommentModel
         fields = [
+            "id",
             "question_id",
             "created_by",
             "comment_text",
@@ -20,6 +21,7 @@ class CommentUpdateDeleteSerializer(serializers.ModelSerializer):
     class Meta:
         model = CommentModel
         fields = [
+            "id",
             "comment_text",
         ]
 
@@ -28,7 +30,7 @@ class CommentRetrieveSerializer(serializers.ModelSerializer):
     class Meta:
         model = CommentModel
         fields = [
-            "pk",
+            "id",
             "comment_text",
             "created_on",
             "edited_on",
@@ -53,6 +55,7 @@ class AnswerUpdateDeleteSerializer(serializers.ModelSerializer):
     class Meta:
         model = AnswerModel
         fields = [
+            "id",
             "answer_text",
         ]
 
@@ -60,7 +63,7 @@ class AnswerRetrieveSerializer(serializers.ModelSerializer):
     class Meta:
         model = AnswerModel
         fields = [
-            "pk",
+            "id",
             "answer_text",
             "votes",
             "created_on",
@@ -72,7 +75,7 @@ class QuestionListSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuestionModel
         fields = [
-            "pk",
+            "id",
             "question_type",
             "question_text",
             "is_active",
@@ -88,7 +91,7 @@ class QuestionRetrieveSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuestionModel
         fields = [
-            "pk",
+            "id",
             "question_type",
             "question_text",
             "is_active",
@@ -139,7 +142,7 @@ class ProductListDisplaySerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductModel
         fields = [
-            "pk",
+            "id",
             "name",
             "created_on",
             "edited_on",

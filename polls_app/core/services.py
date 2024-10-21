@@ -30,12 +30,13 @@ def get_object_and_check_permission_service(app_label, model_name, obj_id, user)
     return current_object
 
 
-def generate_comment_jwt_token_service(guest_id):
+def generate_comment_jwt_token_service(guest_id, obj_id):
     payload = {
         "guest_id": guest_id,
+        "obj_id": obj_id,
         "exp": timezone.now() + timedelta(hours=24),
-        "scope": "comment",
     }
+
     token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
     return token
 
@@ -43,10 +44,34 @@ def generate_comment_jwt_token_service(guest_id):
 def decode_comment_jwt_token_service(token):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        if payload.get("scope") != "comment":
-            raise jwt.InvalidTokenError("Invalid scope for token")
         return payload
+
     except jwt.ExpiredSignatureError:
         raise jwt.ExpiredSignatureError("Token has expired")
+
     except jwt.InvalidTokenError:
         raise jwt.InvalidTokenError("Invalid token")
+
+
+def check_comment_ownership_service(request, instance):
+    """
+    Verifies whether the current user or anonymous guest owns the comment.
+    """
+    user = request.user
+
+    if user.is_authenticated:
+        return instance.owner == user   # If authenticated, check if the user is the owner of the comment
+
+    # If anonymous, validate ownership using the token
+    token = request.COOKIES.get('anonymous_user_token')
+    if not token:
+        return False
+
+    try:
+        payload = decode_comment_jwt_token_service(token)
+        guest_comment_id = payload.get('obj_id')
+
+        return str(instance.id) == str(guest_comment_id)   # Check if the comment ID in the token matches the instance ID
+
+    except jwt.InvalidTokenError:
+        return False

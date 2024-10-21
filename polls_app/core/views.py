@@ -1,5 +1,4 @@
 import uuid
-from http.client import responses
 
 from rest_framework import status
 from rest_framework import generics as views
@@ -7,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
 from polls_app.core.models import AnswerModel, CommentModel
+from polls_app.core.permissions import IsAuthenticatedOrJWTGuest
 from polls_app.core.services import get_object_and_check_permission_service, generate_comment_jwt_token_service
 from polls_app.core.selectors import ProductsSelector, QuestionSelector
 from polls_app.core.serializers import ProductListDisplaySerializer, QuestionRetrieveSerializer, \
@@ -167,16 +167,10 @@ class CommentsCreateApiView(views.GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         user = request.user
-        created_by = None
-        token = None
 
         if user.is_authenticated:
             created_by = user.username
         else:
-            guest_id = str(uuid.uuid4())
-            token = generate_comment_jwt_token_service(guest_id)
-
-            # In case of anonymous users, name should be provided in the request data
             created_by = request.data.get("created_by", "Unknown")
 
         serializer = self.get_serializer(data=request.data)
@@ -185,13 +179,15 @@ class CommentsCreateApiView(views.GenericAPIView):
 
         question = get_object_and_check_permission_service("core", "questionmodel", question_id, None)
 
-        serializer.save(question=question, created_by=created_by)
+        comment = serializer.save(question=question, created_by=created_by)
 
         response = Response(serializer.data, status=status.HTTP_201_CREATED)
 
         # If the user is anonymous, set the comment-specific token in cookies
         if not user.is_authenticated:
-            response.set_cookie('comment_token', token, httponly=True, max_age=60 * 60 * 24)  # 1 day expiration
+            guest_id = str(uuid.uuid4())
+            token = generate_comment_jwt_token_service(guest_id, comment.id)
+            response.set_cookie("anonymous_user_token", token, httponly=True, max_age=60 * 60 * 24)  # 1 day expiration
 
         return response
 
@@ -202,4 +198,4 @@ class CommentsUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView):
     """
     queryset = CommentModel.objects.all()
     serializer_class = CommentUpdateDeleteSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrJWTGuest]

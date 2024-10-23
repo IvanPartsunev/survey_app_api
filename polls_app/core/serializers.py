@@ -5,6 +5,7 @@ from polls_app.core.models import QuestionModel, AnswerModel, CommentModel, Prod
 
 class CommentCreateSerializer(serializers.ModelSerializer):
     question_id = serializers.IntegerField(write_only=True)
+    honeypot = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = CommentModel
@@ -13,8 +14,20 @@ class CommentCreateSerializer(serializers.ModelSerializer):
             "question_id",
             "created_by",
             "comment_text",
+            "honeypot",
         ]
 
+    def validate(self, data):
+        if data.get("honeypot"):
+            raise serializers.ValidationError("Spam detected.")
+
+        return data
+
+    def create(self, validated_data):
+        # Remove the honeypot field before saving the object
+        validated_data.pop('honeypot', None)
+
+        return super().create(validated_data)
 
 class CommentUpdateDeleteSerializer(serializers.ModelSerializer):
 

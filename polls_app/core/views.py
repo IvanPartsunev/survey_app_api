@@ -1,5 +1,7 @@
 import uuid
 
+from django.utils.decorators import method_decorator
+from django_ratelimit.decorators import ratelimit
 from rest_framework import status
 from rest_framework import generics as views
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -165,7 +167,9 @@ class CommentsCreateApiView(views.GenericAPIView):
     serializer_class = CommentCreateSerializer
     permission_classes = [AllowAny]
 
+    @method_decorator(ratelimit(key="ip", rate="15/h", method="POST", block=True))
     def post(self, request, *args, **kwargs):
+
         user = request.user
 
         if user.is_authenticated:

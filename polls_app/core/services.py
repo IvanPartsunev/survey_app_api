@@ -1,3 +1,5 @@
+import uuid
+
 import jwt
 
 from datetime import timedelta
@@ -30,12 +32,20 @@ def get_object_and_check_permission_service(app_label, model_name, obj_id, user)
     return current_object
 
 
-def generate_comment_jwt_token_service(guest_id, obj_id):
-    payload = {
-        "guest_id": guest_id,
-        "obj_id": obj_id,
-        "exp": timezone.now() + timedelta(hours=24),
-    }
+def generate_comment_jwt_token_service(comment_id, question_id, token):
+    if token is None:
+        guest_id = str(uuid.uuid4())
+        payload = {
+            "guest_id": guest_id,
+            "questions": {question_id: comment_id},
+            "exp": timezone.now() + timedelta(hours=24),
+        }
+    else:
+        payload = decode_comment_jwt_token_service(token)
+        if str(question_id) in payload["questions"]:
+            raise ValueError(f"Question ID {question_id} already have comment from this user.")
+
+        payload["questions"][question_id] = comment_id
 
     token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
     return token

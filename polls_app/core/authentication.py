@@ -5,6 +5,8 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
+from drf_spectacular.extensions import OpenApiAuthenticationExtension
+
 from polls_app.core.services import decode_comment_jwt_token_service
 
 
@@ -34,3 +36,15 @@ class AnonymousUserJWTAuthentication(BaseAuthentication):
         except jwt.InvalidTokenError:
             raise AuthenticationFailed('Invalid token')
 
+
+class AnonymousUserJWTAuthenticationScheme(OpenApiAuthenticationExtension):
+    target_class = 'polls_app.core.authentication.AnonymousUserJWTAuthentication'  # The full path to your auth class
+    name = 'AnonymousUserJWTAuthentication'  # The name used in the OpenAPI schema
+
+    def get_security_definition(self, auto_schema):
+        return {
+            'type': 'apiKey',
+            'in': 'cookie',
+            'name': 'anonymous_user_token',  # This refers to the cookie name where the token is stored
+            'description': 'JWT token for anonymous user comments',
+        }

@@ -185,9 +185,17 @@ class CommentsCreateApiView(views.GenericAPIView):
 
         # If the user is anonymous, set the comment-specific token in cookies
         if not user.is_authenticated:
-            guest_id = str(uuid.uuid4())
-            token = generate_comment_jwt_token_service(guest_id, comment.id)
-            response.set_cookie("anonymous_user_token", token, httponly=True, max_age=60 * 60 * 24)  # 1 day expiration
+            token = request.COOKIES.get("anonymous_user_token", None)
+
+            try:
+                token = generate_comment_jwt_token_service(comment.id, question_id, token)
+                response.set_cookie("anonymous_user_token", token, httponly=True, max_age=60 * 60 * 24)  # 1 day expiration
+            except ValueError as e:
+                # If ValueError is raised, return a 400 Bad Request with the error message
+                return Response(
+                    {"detail": str(e)},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
         return response
 

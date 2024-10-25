@@ -19,6 +19,7 @@ class AccountModel(auth_models.AbstractBaseUser, auth_models.PermissionsMixin):
 
     username = models.CharField(
         max_length=150,
+        unique=True,
     )
 
     auth_provider = models.CharField(

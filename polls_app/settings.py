@@ -136,7 +136,8 @@ SPECTACULAR_SETTINGS = {
     "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
     "REDOC_DIST": "SIDECAR",
     "AUTHENTICATION_WHITELIST": [
-        "polls_app.core.authentication.AnonymousUserJWTAuthentication"
+        "polls_app.core.authentication.AnonymousUserJWTAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
 }
 

@@ -7,6 +7,7 @@ from datetime import timedelta
 from django.utils import timezone
 from django.http import Http404
 from django.contrib.contenttypes.models import ContentType
+from urllib3 import request
 
 from polls_app.core.permissions import is_owner
 from polls_app.custom_exeption import ApplicationError
@@ -42,9 +43,6 @@ def generate_comment_jwt_token_service(comment_id, question_id, token):
         }
     else:
         payload = decode_comment_jwt_token_service(token)
-        if str(question_id) in payload["questions"]:
-            raise ValueError(f"Question ID {question_id} already have comment from this user.")
-
         payload["questions"][question_id] = comment_id
 
     token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
@@ -63,6 +61,19 @@ def decode_comment_jwt_token_service(token):
         raise jwt.InvalidTokenError("Invalid token")
 
 
+def validate_comment_uniqueness_service(question_id, token):
+    # If there’s no token, assume no prior comment
+    if token is None:
+        return
+
+    # Decode the existing token
+    payload = decode_comment_jwt_token_service(token)
+
+    # Check if a comment for this question already exists in the payload
+    if str(question_id) in payload["questions"]:
+        raise ValueError(f"Question ID {question_id} already has a comment from this user.")
+
+
 def check_comment_ownership_service(request, instance):
     """
     Verifies whether the current user or anonymous guest owns the comment.
@@ -73,15 +84,25 @@ def check_comment_ownership_service(request, instance):
         return instance.owner == user   # If authenticated, check if the user is the owner of the comment
 
     # If anonymous, validate ownership using the token
-    token = request.COOKIES.get('anonymous_user_token')
+    token = request.COOKIES.get("anonymous_user_token")
     if not token:
         return False
 
     try:
         payload = decode_comment_jwt_token_service(token)
-        guest_comment_id = payload.get('obj_id')
-
-        return str(instance.id) == str(guest_comment_id)   # Check if the comment ID in the token matches the instance ID
+        if instance.id not in payload["questions"].values():
+            return False
+        return True
 
     except jwt.InvalidTokenError:
         return False
+
+def remove_comment_from_token_service(request, comment_id):
+    token = request.COOKIES.get("anonymous_user_token")
+    payload = decode_comment_jwt_token_service(token)
+
+    payload["questions"] = {k: v for k, v in payload["questions"].items() if v != comment_id}
+
+    token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+
+    return token

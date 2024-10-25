@@ -9,7 +9,8 @@ from rest_framework.response import Response
 
 from polls_app.core.models import AnswerModel, CommentModel
 from polls_app.core.permissions import IsAuthenticatedOrJWTGuest
-from polls_app.core.services import get_object_and_check_permission_service, generate_comment_jwt_token_service
+from polls_app.core.services import get_object_and_check_permission_service, generate_comment_jwt_token_service, \
+    validate_comment_uniqueness_service
 from polls_app.core.selectors import ProductsSelector, QuestionSelector
 from polls_app.core.serializers import ProductListDisplaySerializer, QuestionRetrieveSerializer, \
     QuestionCreateSerializer, ProductCreateUpdateDeleteSerializer, AnswerCreateSerializer, CommentCreateSerializer, \
@@ -183,23 +184,25 @@ class CommentsCreateApiView(views.GenericAPIView):
 
         question = get_object_and_check_permission_service("core", "questionmodel", question_id, None)
 
-        comment = serializer.save(question=question, created_by=created_by)
-
-        response = Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        # If the user is anonymous, set the comment-specific token in cookies
+        # If user is anonymous, handle JWT for comment limitation
         if not user.is_authenticated:
             token = request.COOKIES.get("anonymous_user_token", None)
-
             try:
-                token = generate_comment_jwt_token_service(comment.id, question_id, token)
-                response.set_cookie("anonymous_user_token", token, httponly=True, max_age=60 * 60 * 24)  # 1 day expiration
+                # Validate if a comment already exists for this question in the JWT payload
+                validate_comment_uniqueness_service(question_id, token)
             except ValueError as e:
-                # If ValueError is raised, return a 400 Bad Request with the error message
                 return Response(
                     {"detail": str(e)},
                     status=status.HTTP_400_BAD_REQUEST
                 )
+
+        comment = serializer.save(question=question, created_by=created_by)
+        response = Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        if not user.is_authenticated:
+            token = request.COOKIES.get("anonymous_user_token", None)
+            token = generate_comment_jwt_token_service(comment.id, question_id, token)
+            response.set_cookie("anonymous_user_token", token, httponly=True, max_age=60 * 60 * 24)  # 1 day expiration
 
         return response
 

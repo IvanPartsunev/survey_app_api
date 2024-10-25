@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.response import Response
 
-from polls_app.core.services import check_comment_ownership_service
+from polls_app.core.services import check_comment_ownership_service, remove_comment_from_token_service
 
 
 class UpdateDeleteMixin:
@@ -44,12 +44,18 @@ class UpdateDeleteMixin:
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        response = Response(
+                {"message": "Successfully deleted"},
+                status=status.HTTP_204_NO_CONTENT,
+            )
+
+        if not request.user.is_authenticated:
+            token = remove_comment_from_token_service(request, instance.id)
+            response.set_cookie("anonymous_user_token", token, httponly=True, max_age=60 * 60 * 24)  # 1 day expiration
+
         instance.delete()
 
-        return Response(
-            {"message": "Successfully deleted"},
-            status=status.HTTP_204_NO_CONTENT,
-        )
+        return response
 
 
 

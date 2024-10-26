@@ -164,7 +164,7 @@ class AnswerVoteApiView(views.GenericAPIView):
     queryset = AnswerModel.objects.all()
     permission_classes = [AllowAny]
 
-    def patch(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         instance = self.get_object()
         response = vote_on_answer_service(request, instance)
         return response

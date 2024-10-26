@@ -83,6 +83,11 @@ The goal is for users to be able to create surveys for test products and easily 
   - `DELETE /answers/<int:pk>/`  
   - Deletes a specific answer.
 
+- **Vote on Answer**: 
+  - `POST /answers/<int:pk>/vote/`  
+  - Adds a vote to the specified answer. Rate-limited to prevent abuse.
+  - Users can answer only once and can't change or delete their answer.
+
 ### **Comments**
 
 - **Create Comment**: 

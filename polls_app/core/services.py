@@ -6,6 +6,7 @@ from datetime import timedelta
 from django.utils import timezone
 from django.http import Http404
 from django.contrib.contenttypes.models import ContentType
+from rest_framework.response import Response
 
 from polls_app.core.permissions import is_owner
 from polls_app.custom_exeption import ApplicationError
@@ -104,3 +105,22 @@ def remove_comment_from_token_service(request, comment_id):
     token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
     return token
+
+
+def vote_on_answer_service(request, answer):
+    # Get the voted answers from cookies (defaults to an empty list if none)
+    voted_answers = request.COOKIES.get("voted_answers", "").split(",")
+
+    # Check if the user has already voted on this answer
+    if str(answer.id) in voted_answers:
+        return Response({"detail": "You have already voted on this answer."}, status=400)
+
+    answer.votes += 1
+    answer.save()
+
+    # Update the cookie with the new answer ID
+    voted_answers.append(str(answer.id))
+    response = Response({"message": "Your vote has been counted."}, status=200)
+    response.set_cookie("voted_answers", ",".join(voted_answers), httponly=True, max_age=60 * 60 * 24 * 30)  # 30 days
+
+    return response

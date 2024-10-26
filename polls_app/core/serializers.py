@@ -72,6 +72,7 @@ class AnswerUpdateDeleteSerializer(serializers.ModelSerializer):
             "answer_text",
         ]
 
+
 class AnswerRetrieveSerializer(serializers.ModelSerializer):
     class Meta:
         model = AnswerModel

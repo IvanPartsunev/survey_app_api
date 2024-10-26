@@ -6,11 +6,12 @@ from rest_framework.response import Response
 from polls_app.core.models import AnswerModel, CommentModel
 from polls_app.core.permissions import IsAuthenticatedOrJWTGuest
 from polls_app.core.services import get_object_and_check_permission_service, generate_comment_jwt_token_service, \
-    validate_comment_uniqueness_service
+    validate_comment_uniqueness_service, vote_on_answer_service
 from polls_app.core.selectors import ProductsSelector, QuestionSelector
 from polls_app.core.serializers import ProductListDisplaySerializer, QuestionRetrieveSerializer, \
     QuestionCreateSerializer, ProductCreateUpdateDeleteSerializer, AnswerCreateSerializer, CommentCreateSerializer, \
-    QuestionUpdateDeleteSerializer, AnswerUpdateDeleteSerializer, CommentUpdateDeleteSerializer
+    QuestionUpdateDeleteSerializer, AnswerUpdateDeleteSerializer, CommentUpdateDeleteSerializer, \
+    AnswerRetrieveSerializer
 from polls_app.core.views_mixins import UpdateDeleteMixin
 
 
@@ -156,6 +157,19 @@ class AnswersUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
 
+class AnswerVoteApiView(views.GenericAPIView):
+    """
+    This view is dedicated just to add votes to answers.
+    """
+    queryset = AnswerModel.objects.all()
+    permission_classes = [AllowAny]
+
+    def patch(self, request, *args, **kwargs):
+        instance = self.get_object()
+        response = vote_on_answer_service(request, instance)
+        return response
+
+
 class CommentsCreateApiView(views.GenericAPIView):
     """
     This view creates comment for question. Question id should be provided as data in request.
@@ -209,3 +223,5 @@ class CommentsUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIView):
     queryset = CommentModel.objects.all()
     serializer_class = CommentUpdateDeleteSerializer
     permission_classes = [IsAuthenticatedOrJWTGuest]
+
+

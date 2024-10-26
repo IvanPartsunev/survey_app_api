@@ -103,9 +103,6 @@ The goal is for users to be able to create surveys for test products and easily 
 
 ## Plans for the Future
 
-- **Anonymous Participation**:  
-  Unregistered users will be able to answer questions and add comments. However, update operations on answers will be permitted for a limited time after submitting a response.
-  
 - **Extended Question Types**:  
   More flexible question types will be added to allow for more complex surveys.
 

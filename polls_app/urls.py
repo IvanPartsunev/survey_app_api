@@ -7,7 +7,6 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
-# handler403 = "polls_app.core.handlers.handler403"
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),

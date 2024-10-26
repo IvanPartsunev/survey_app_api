@@ -10,6 +10,9 @@ The goal is for users to be able to create surveys for test products and easily 
 - **JWT Authentication**: Authentication is handled via JWT tokens, ensuring secure access to the API.
 - **Account Creation**: Users can create accounts using Facebook, Google, or standard email registration with email confirmation.
 - **Core Functionality**: Provides CRUD operations for products, questions, answers, and comments related to surveys.
+- **Rate Limiting & Security Enhancements**: 
+  - Rate limits are applied to sensitive endpoints, such as login and anonymous comment posting, to prevent abuse and bot attacks.
+  - A honeypot mechanic is added to the comments endpoint to enhance security.
 
 ---
 
@@ -21,9 +24,11 @@ The goal is for users to be able to create surveys for test products and easily 
   - JWT-based authentication is implemented to secure access to the endpoints.
   
   - **Login Endpoint**: `/auth/login/`
+    - Rate-limited to prevent brute-force attacks.
+
   - **Register Endpoint**: `/auth/register/`
   - **JWT Token Refresh**: `/auth/token/refresh/`
-  
+
 ### **Products**
 
 - **List Products**: 
@@ -83,14 +88,16 @@ The goal is for users to be able to create surveys for test products and easily 
 - **Create Comment**: 
   - `POST /comments/`  
   - Adds a new comment to a specific question. The `question_id` must be provided in the request data.
+  - Rate-limited to prevent spam and abuse, especially as this endpoint is accessible to anonymous users.
+  - Protected with a honeypot mechanism to defend against bot attacks.
 
 - **Update Comment**: 
   - `PATCH /comments/<int:pk>/`  
-  - Updates the text of an existing comment.
+  - Updates the text of an existing comment, restricted to the comment owner.
 
 - **Delete Comment**: 
   - `DELETE /comments/<int:pk>/`  
-  - Deletes a specific comment.
+  - Deletes a specific comment, with checks to ensure only the comment owner (authenticated or anonymous) can delete it.
 
 ---
 
@@ -125,7 +132,7 @@ The goal is for users to be able to create surveys for test products and easily 
     ```bash
     http://localhost:8000/swagger/
 
-## How to Run the Project
+
 Feel free to open issues or submit pull requests to contribute to this project. Make sure to follow the project's coding standards and testing practices.
 
 ## Licence

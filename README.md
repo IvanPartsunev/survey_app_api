@@ -90,6 +90,8 @@ The goal is for users to be able to create surveys for test products and easily 
   - Adds a new comment to a specific question. The `question_id` must be provided in the request data.
   - Rate-limited to prevent spam and abuse, especially as this endpoint is accessible to anonymous users.
   - Protected with a honeypot mechanism to defend against bot attacks.
+  - Anonymous users can make only one comment per question, while logged-in users have no such limits.
+  - A cookie is created for anonymous users when they post a comment for a question. This cookie is used to authenticate them for update and delete operations on their comment.
 
 - **Update Comment**: 
   - `PATCH /comments/<int:pk>/`  
@@ -98,6 +100,7 @@ The goal is for users to be able to create surveys for test products and easily 
 - **Delete Comment**: 
   - `DELETE /comments/<int:pk>/`  
   - Deletes a specific comment, with checks to ensure only the comment owner (authenticated or anonymous) can delete it.
+  - When an anonymous user's comment is deleted, they can create new comment on the same question.
 
 ---
 

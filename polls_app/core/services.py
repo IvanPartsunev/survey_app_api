@@ -1,5 +1,4 @@
 import uuid
-
 import jwt
 
 from datetime import timedelta
@@ -7,7 +6,6 @@ from datetime import timedelta
 from django.utils import timezone
 from django.http import Http404
 from django.contrib.contenttypes.models import ContentType
-from urllib3 import request
 
 from polls_app.core.permissions import is_owner
 from polls_app.custom_exeption import ApplicationError

@@ -97,6 +97,10 @@ class CommentModel(CreateUpdateMixin):
         default="Unknown"
     )
 
+    anonymous_user_id = models.CharField(
+        default="Reg"   # Registered user
+    )
+
     @classmethod
     def class_name(cls):
         return "Comment"

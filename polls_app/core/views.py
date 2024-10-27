@@ -209,8 +209,12 @@ class CommentsCreateApiView(views.GenericAPIView):
 
         if not user.is_authenticated:
             token = request.COOKIES.get("anonymous_user_token", None)
-            token = generate_comment_jwt_token_service(comment.id, question_id, token)
-            response.set_cookie("anonymous_user_token", token, httponly=True, max_age=60 * 60 * 24)  # 1 day expiration
+            token, guest_id = generate_comment_jwt_token_service(comment.id, question_id, token)
+
+            comment.anonymous_user_id = guest_id
+            comment.save()
+
+            response.set_cookie("anonymous_user_token", token, httponly=True, max_age=60 * 60 * 24 * 30)  # 30 days expiration
 
         return response
 

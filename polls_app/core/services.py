@@ -42,10 +42,11 @@ def generate_comment_jwt_token_service(comment_id, question_id, token):
         }
     else:
         payload = decode_comment_jwt_token_service(token)
+        guest_id = payload["guest_id"]
         payload["questions"][question_id] = comment_id
 
     token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
-    return token
+    return token, guest_id
 
 
 def decode_comment_jwt_token_service(token):
@@ -89,8 +90,14 @@ def check_ownership_service(request, instance):
 
     try:
         payload = decode_comment_jwt_token_service(token)
+
         if instance.id not in payload["questions"].values():
             return False
+
+        if hasattr(instance, "anonymous_user_id"):
+            check_bool = instance.anonymous_user_id == payload["guest_id"]
+            return check_bool
+
         return True
 
     except jwt.InvalidTokenError:

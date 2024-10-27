@@ -80,7 +80,7 @@ def check_ownership_service(request, instance):
     user = request.user
 
     if user.is_authenticated:
-        return instance.owner == user   # If authenticated, check if the user is the owner of the comment
+        return instance.owner == user.username or instance.owner == user  # If authenticated, check if the user is the owner of the comment
 
     # If anonymous, validate ownership using the token
     token = request.COOKIES.get("anonymous_user_token")

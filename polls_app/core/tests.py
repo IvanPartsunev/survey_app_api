@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from polls_app.core.models import AnswerModel, CommentModel, QuestionModel, ProductModel
+from polls_app.core.services import decode_comment_jwt_token_service
 from polls_app.custom_exeption import ApplicationError
 
 UserModel = get_user_model()
@@ -14,7 +15,7 @@ UserModel = get_user_model()
 class CoreViewsTests(APITestCase):
 
     def setUp(self):
-        self.user = UserModel.objects.create_user(
+        self.user_1 = UserModel.objects.create_user(
             email="test@test.com",
             username="testuser",
             password="testpassword",
@@ -22,16 +23,16 @@ class CoreViewsTests(APITestCase):
         )
 
         # Obtain JWT token for the user
-        refresh = RefreshToken.for_user(self.user)
+        refresh = RefreshToken.for_user(self.user_1)
         self.access_token = str(refresh.access_token)
 
         self.product = ProductModel.objects.create(
             name="Product test name",
-            owner=self.user,
+            owner=self.user_1,
         )
 
         self.question = QuestionModel.objects.create(
-            owner=self.user,
+            owner=self.user_1,
             question_type="Text",
             question_text="Sample Question",
             is_active=True,
@@ -42,7 +43,7 @@ class CoreViewsTests(APITestCase):
             question=self.question,
             answer_text="Sample Answer",
             votes=0,
-            owner = self.user,
+            owner = self.user_1,
         )
 
         self.comment = CommentModel.objects.create(
@@ -229,3 +230,200 @@ class CoreViewsTests(APITestCase):
 
         # Verify the answer has been deleted
         self.assertFalse(AnswerModel.objects.filter(pk=self.answer.pk).exists())
+
+    def test_vote_on_answer_authenticated_user(self):
+        """Test voting on an answer as an authenticated user."""
+        self.authenticate()
+        response = self.client.post(f'/answers/{self.answer.pk}/vote')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["message"], "Your vote has been counted.")
+
+        # Verify that the vote count increased by 1
+        self.answer.refresh_from_db()
+        self.assertEqual(self.answer.votes, 1)
+
+    def test_vote_on_answer_anonymous_user(self):
+        """Test voting on an answer as an anonymous user with cookie handling."""
+        response = self.client.post(f'/answers/{self.answer.pk}/vote')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["message"], "Your vote has been counted.")
+
+        # Verify the vote count has increased
+        self.answer.refresh_from_db()
+        self.assertEqual(self.answer.votes, 1)
+
+        # Check if the answer ID was added to the voted_answers cookie
+        self.assertIn("voted_answers", response.cookies)
+        voted_answers_cookie = response.cookies["voted_answers"].value
+        self.assertIn(str(self.answer.pk), voted_answers_cookie)
+
+    def test_prevent_duplicate_vote_anonymous_user(self):
+        """Test that an anonymous user cannot vote on the same answer more than once."""
+        # First vote
+        response = self.client.post(f'/answers/{self.answer.pk}/vote')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Set the voted_answers cookie to simulate a previous vote
+        voted_answers_cookie = response.cookies["voted_answers"].value
+        self.client.cookies["voted_answers"] = voted_answers_cookie
+
+        # Attempt to vote again on the same answer
+        second_response = self.client.post(f'/answers/{self.answer.pk}/vote')
+        self.assertEqual(second_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(second_response.data["detail"], "You have already voted on this answer.")
+
+        # Ensure the vote count did not increase
+        self.answer.refresh_from_db()
+        self.assertEqual(self.answer.votes, 1)
+
+    def test_prevent_duplicate_vote_authenticated_user(self):
+        """Test that an authenticated user cannot vote on the same answer more than once."""
+        self.authenticate()
+
+        # First vote
+        response = self.client.post(f'/answers/{self.answer.pk}/vote')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Attempt to vote again on the same answer
+        second_response = self.client.post(f'/answers/{self.answer.pk}/vote')
+        self.assertEqual(second_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(second_response.data["detail"], "You have already voted on this answer.")
+
+        # Ensure the vote count did not increase
+        self.answer.refresh_from_db()
+        self.assertEqual(self.answer.votes, 1)
+
+
+class CommentsApiTests(APITestCase):
+
+    def setUp(self):
+        self.user_2 = UserModel.objects.create_user(
+            email="auth_user@test.com",
+            username="authuser",
+            password="authpassword",
+            is_active=True
+        )
+
+        # Obtain JWT token for the authenticated user
+        refresh = RefreshToken.for_user(self.user_2)
+        self.access_token = str(refresh.access_token)
+
+        self.product = ProductModel.objects.create(
+            name="Product test name",
+            owner=self.user_2,
+        )
+
+        self.question = QuestionModel.objects.create(
+            owner=self.user_2,
+            question_type="Text",
+            question_text="Sample Question",
+            is_active=True,
+            product=self.product,
+        )
+
+    def authenticate(self):
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + self.access_token)
+
+    def test_create_comment_authenticated_user(self):
+        """Test creating a comment as an authenticated user."""
+        self.authenticate()
+
+        data = {
+            "question_id": self.question.pk,
+            "comment_text": "This is a test comment by an authenticated user.",
+        }
+        response = self.client.post('/comments/', data=data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["comment_text"], data["comment_text"])
+
+    def test_create_comment_anonymous_user(self):
+        """Test creating a comment as an anonymous user with cookie handling."""
+        data = {
+            "question_id": self.question.pk,
+            "comment_text": "This is a test comment by an anonymous user.",
+        }
+        response = self.client.post('/comments/', data=data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["comment_text"], data["comment_text"])
+
+        # Check if a token has been set in the cookie
+        self.assertIn("anonymous_user_token", response.cookies)
+        self.assertTrue(response.cookies["anonymous_user_token"]["httponly"])
+
+    def test_prevent_duplicate_comment_anonymous_user(self):
+        """Test that an anonymous user cannot comment more than once on the same question."""
+        data = {
+            "question_id": self.question.pk,
+            "comment_text": "First anonymous comment.",
+        }
+        first_response = self.client.post('/comments/', data=data, format='json')
+        self.assertEqual(first_response.status_code, status.HTTP_201_CREATED)
+
+        second_response = self.client.post('/comments/', data=data, format='json')
+        self.assertEqual(second_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("detail", second_response.data)
+        self.assertEqual(second_response.data["detail"], f"Question ID {self.question.id} already has a comment from this user.")
+
+    def test_update_comment_authenticated_user(self):
+        """Authenticated user updates their comment."""
+        self.authenticate()
+        comment = CommentModel.objects.create(
+            question=self.question,
+            comment_text="Original comment",
+            owner=self.user_2.username,
+        )
+
+        data = {"comment_text": "Updated comment by authenticated user."}
+        response = self.client.patch(f'/comments/{comment.pk}/', data=data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        comment.refresh_from_db()
+        self.assertEqual(comment.comment_text, data["comment_text"])
+
+    def test_update_comment_anonymous_user(self):
+        """Anonymous user attempts to update their comment."""
+        comment_data = {
+            "question_id": self.question.pk,
+            "comment_text": "Anonymous comment",
+        }
+        create_response = self.client.post('/comments/', data=comment_data, format='json')
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+
+        # Get cookie token to simulate ownership check
+        token = create_response.cookies["anonymous_user_token"].value
+        self.client.cookies["anonymous_user_token"] = token
+
+        # Update the comment as the same anonymous user
+        data = {"comment_text": "Updated anonymous comment"}
+        comment_id = create_response.data["id"]
+        update_response = self.client.patch(f'/comments/{comment_id}/', data=data, format='json')
+
+        self.assertEqual(update_response.status_code, status.HTTP_200_OK)
+        comment = CommentModel.objects.get(pk=comment_id)
+        self.assertEqual(comment.comment_text, data["comment_text"])
+
+    def test_delete_comment_anonymous_user_removes_cookie_entry(self):
+        """Anonymous user deletes their comment, removing the question from the cookie."""
+        # Create the comment first
+        comment_data = {
+            "question_id": self.question.pk,
+            "comment_text": "Anonymous comment for deletion",
+        }
+        create_response = self.client.post('/comments/', data=comment_data, format='json')
+        comment_id = create_response.data["id"]
+        token = create_response.cookies["anonymous_user_token"].value
+
+        self.client.cookies["anonymous_user_token"] = token
+
+        # Delete the comment
+        delete_response = self.client.delete(f'/comments/{comment_id}/')
+        self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
+
+        # Check that the comment ID is removed from the JWT token in the cookie
+        updated_token = delete_response.cookies.get("anonymous_user_token").value
+        payload = decode_comment_jwt_token_service(updated_token)
+        self.assertNotIn(self.question.pk, payload["questions"])

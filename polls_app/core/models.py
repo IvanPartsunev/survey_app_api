@@ -92,7 +92,7 @@ class CommentModel(CreateUpdateMixin):
         related_name="question_comments"
     )
 
-    created_by = models.TextField(
+    owner = models.TextField(
         max_length=30,
         default="Unknown"
     )

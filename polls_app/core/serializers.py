@@ -12,7 +12,7 @@ class CommentCreateSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "question_id",
-            "created_by",
+            "owner",
             "comment_text",
             "honeypot",
         ]
@@ -47,7 +47,7 @@ class CommentRetrieveSerializer(serializers.ModelSerializer):
             "comment_text",
             "created_on",
             "edited_on",
-            "created_by",
+            "owner",
         ]
 
 

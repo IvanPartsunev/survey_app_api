@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.response import Response
 
-from polls_app.core.services import check_comment_ownership_service, remove_comment_from_token_service
+from polls_app.core.services import check_ownership_service, remove_comment_from_token_service
 
 
 class UpdateDeleteMixin:
@@ -13,7 +13,7 @@ class UpdateDeleteMixin:
         instance = self.get_object()
 
         # Check ownership for authenticated and anonymous users
-        if not check_comment_ownership_service(request, instance):
+        if not check_ownership_service(request, instance):
             return Response(
                 {"detail": "You do not have permission to edit this comment."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -38,7 +38,7 @@ class UpdateDeleteMixin:
         instance = self.get_object()
 
         # Check ownership for authenticated and anonymous users
-        if not check_comment_ownership_service(request, instance):
+        if not check_ownership_service(request, instance):
             return Response(
                 {"detail": "You do not have permission to delete this comment."},
                 status=status.HTTP_403_FORBIDDEN,

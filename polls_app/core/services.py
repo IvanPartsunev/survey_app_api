@@ -73,14 +73,14 @@ def validate_comment_uniqueness_service(question_id, token):
         raise ValueError(f"Question ID {question_id} already has a comment from this user.")
 
 
-def check_comment_ownership_service(request, instance):
+def check_ownership_service(request, instance):
     """
-    Verifies whether the current user or anonymous guest owns the comment.
+    Verifies whether the current user or anonymous guest owns the object.
     """
     user = request.user
 
     if user.is_authenticated:
-        return instance.created_by == user.username   # If authenticated, check if the user is the owner of the comment
+        return instance.owner == user   # If authenticated, check if the user is the owner of the comment
 
     # If anonymous, validate ownership using the token
     token = request.COOKIES.get("anonymous_user_token")

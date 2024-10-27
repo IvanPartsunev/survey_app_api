@@ -10,8 +10,7 @@ from polls_app.core.services import get_object_and_check_permission_service, gen
 from polls_app.core.selectors import ProductsSelector, QuestionSelector
 from polls_app.core.serializers import ProductListDisplaySerializer, QuestionRetrieveSerializer, \
     QuestionCreateSerializer, ProductCreateUpdateDeleteSerializer, AnswerCreateSerializer, CommentCreateSerializer, \
-    QuestionUpdateDeleteSerializer, AnswerUpdateDeleteSerializer, CommentUpdateDeleteSerializer, \
-    AnswerRetrieveSerializer
+    QuestionUpdateDeleteSerializer, AnswerUpdateDeleteSerializer, CommentUpdateDeleteSerializer
 from polls_app.core.views_mixins import UpdateDeleteMixin
 
 
@@ -185,7 +184,7 @@ class CommentsCreateApiView(views.GenericAPIView):
         if user.is_authenticated:
             created_by = user.username
         else:
-            created_by = request.data.get("created_by", "Unknown")
+            created_by = request.data.get("owner", "Unknown")
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -205,7 +204,7 @@ class CommentsCreateApiView(views.GenericAPIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        comment = serializer.save(question=question, created_by=created_by)
+        comment = serializer.save(question=question, owner=created_by)
         response = Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if not user.is_authenticated:

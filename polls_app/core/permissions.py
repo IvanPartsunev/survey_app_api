@@ -5,7 +5,7 @@ from rest_framework.permissions import BasePermission
 def is_owner(obj, user):
     if obj.owner != user:
         raise exceptions.PermissionDenied()
-
+    return True
 
 class IsAuthenticatedOrJWTGuest(BasePermission):
     def has_permission(self, request, view):

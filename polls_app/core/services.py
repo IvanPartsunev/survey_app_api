@@ -6,6 +6,7 @@ from datetime import timedelta
 from django.utils import timezone
 from django.http import Http404
 from django.contrib.contenttypes.models import ContentType
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from polls_app.core.permissions import is_owner
@@ -131,3 +132,20 @@ def vote_on_answer_service(request, answer):
     response.set_cookie("voted_answers", ",".join(voted_answers), httponly=True, max_age=60 * 60 * 24 * 30)  # 30 days
 
     return response
+
+
+def activate_deactivate_question_service(request, question):
+    try:
+        is_owner(question, request.user)
+        question.is_active = not question.is_active
+        question.save()
+        return Response(
+            {"message": f"Your question is {"activated" if question.is_active else "deactivated"}."},
+            status=200,
+        )
+
+    except PermissionDenied as e:
+        return Response(
+            {"message": f"{e}"},
+            status=403,
+        )

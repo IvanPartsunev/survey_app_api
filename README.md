@@ -69,6 +69,10 @@ The goal is for users to be able to create surveys for test products and easily 
   - `DELETE /questions/<int:pk>/`  
   - Deletes a specific question and its associated answers and comments.
 
+- **Activate/Deactivate Question**: 
+  - `POST /questions/<int:pk>/activate-deactivate/`  
+  - Activate or Deactivate a specific question.
+
 ### **Answers**
 
 - **Create Answer**: 

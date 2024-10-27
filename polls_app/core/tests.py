@@ -126,35 +126,35 @@ class CoreViewsTests(APITestCase):
             "question_text": "New Sample Question"
         }
 
-        response = self.client.post('/questions/', data=data, format='json')
+        response = self.client.post("/questions/", data=data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         # Verify the new question has been created
-        self.assertEqual(response.data['question_text'], data['question_text'])
-        self.assertEqual(response.data['question_type'], data['question_type'])
-        self.assertIsNotNone(response.data['id'])
+        self.assertEqual(response.data["question_text"], data["question_text"])
+        self.assertEqual(response.data["question_type"], data["question_type"])
+        self.assertIsNotNone(response.data["id"])
 
         # Ensure the question is linked to the product
-        question = QuestionModel.objects.get(pk=response.data['id'])
+        question = QuestionModel.objects.get(pk=response.data["id"])
         self.assertEqual(question.product.pk, self.product.pk)
 
     def test_retrieve_question(self):
         self.authenticate()
 
-        response = self.client.get(f'/questions/{self.question.pk}/')
+        response = self.client.get(f"/questions/{self.question.pk}/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Verify the question details
-        self.assertEqual(response.data['question_text'], self.question.question_text)
-        self.assertEqual(response.data['id'], self.question.pk)
+        self.assertEqual(response.data["question_text"], self.question.question_text)
+        self.assertEqual(response.data["id"], self.question.pk)
 
         # Check if answers and comments are included
-        self.assertIn('answers', response.data)
-        self.assertIn('comments', response.data)
-        self.assertEqual(len(response.data['answers']), 1)  # One answer linked to this question
-        self.assertEqual(len(response.data['comments']), 1)  # One comment linked to this question
+        self.assertIn("answers", response.data)
+        self.assertIn("comments", response.data)
+        self.assertEqual(len(response.data["answers"]), 1)  # One answer linked to this question
+        self.assertEqual(len(response.data["comments"]), 1)  # One comment linked to this question
 
     def test_update_question(self):
         # Authenticate the user
@@ -167,20 +167,20 @@ class CoreViewsTests(APITestCase):
         }
 
         # Make a PATCH request to update the question
-        response = self.client.patch(f'/questions/{self.question.pk}/', data=data, format='json')
+        response = self.client.patch(f"/questions/{self.question.pk}/", data=data, format="json")
 
         # Check response status
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Verify the question has been updated
         self.question.refresh_from_db()
-        self.assertEqual(self.question.question_text, data['question_text'])
-        self.assertEqual(self.question.question_type, data['question_type'])
+        self.assertEqual(self.question.question_text, data["question_text"])
+        self.assertEqual(self.question.question_type, data["question_type"])
 
     def test_delete_question(self):
         self.authenticate()
 
-        response = self.client.delete(f'/questions/{self.question.pk}/')
+        response = self.client.delete(f"/questions/{self.question.pk}/")
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
@@ -195,15 +195,15 @@ class CoreViewsTests(APITestCase):
             "answer_text": "New Sample Answer",
         }
 
-        response = self.client.post('/answers/', data=data, format='json')
+        response = self.client.post("/answers/", data=data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         # Verify the new answer has been created
-        self.assertEqual(response.data['answer_text'], data['answer_text'])
+        self.assertEqual(response.data["answer_text"], data["answer_text"])
 
         # Ensure the answer is linked to the question
-        answer = AnswerModel.objects.get(pk=response.data['id'])
+        answer = AnswerModel.objects.get(pk=response.data["id"])
         self.assertEqual(answer.question.pk, self.question.pk)
 
     def test_update_answer(self):
@@ -213,18 +213,18 @@ class CoreViewsTests(APITestCase):
             "answer_text": "Updated Answer Text"
         }
 
-        response = self.client.patch(f'/answers/{self.answer.id}/', data=data, format='json')
+        response = self.client.patch(f"/answers/{self.answer.id}/", data=data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Verify that the answer has been updated
         self.answer.refresh_from_db()  # Refresh from the database
-        self.assertEqual(self.answer.answer_text, data['answer_text'])
+        self.assertEqual(self.answer.answer_text, data["answer_text"])
 
     def test_delete_answer(self):
         self.authenticate()
 
-        response = self.client.delete(f'/answers/{self.answer.pk}/')
+        response = self.client.delete(f"/answers/{self.answer.pk}/")
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
@@ -234,7 +234,7 @@ class CoreViewsTests(APITestCase):
     def test_vote_on_answer_authenticated_user(self):
         """Test voting on an answer as an authenticated user."""
         self.authenticate()
-        response = self.client.post(f'/answers/{self.answer.pk}/vote')
+        response = self.client.post(f"/answers/{self.answer.pk}/vote")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["message"], "Your vote has been counted.")
@@ -245,7 +245,7 @@ class CoreViewsTests(APITestCase):
 
     def test_vote_on_answer_anonymous_user(self):
         """Test voting on an answer as an anonymous user with cookie handling."""
-        response = self.client.post(f'/answers/{self.answer.pk}/vote')
+        response = self.client.post(f"/answers/{self.answer.pk}/vote")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["message"], "Your vote has been counted.")
@@ -262,7 +262,7 @@ class CoreViewsTests(APITestCase):
     def test_prevent_duplicate_vote_anonymous_user(self):
         """Test that an anonymous user cannot vote on the same answer more than once."""
         # First vote
-        response = self.client.post(f'/answers/{self.answer.pk}/vote')
+        response = self.client.post(f"/answers/{self.answer.pk}/vote")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Set the voted_answers cookie to simulate a previous vote
@@ -270,7 +270,7 @@ class CoreViewsTests(APITestCase):
         self.client.cookies["voted_answers"] = voted_answers_cookie
 
         # Attempt to vote again on the same answer
-        second_response = self.client.post(f'/answers/{self.answer.pk}/vote')
+        second_response = self.client.post(f"/answers/{self.answer.pk}/vote")
         self.assertEqual(second_response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(second_response.data["detail"], "You have already voted on this answer.")
 
@@ -283,11 +283,11 @@ class CoreViewsTests(APITestCase):
         self.authenticate()
 
         # First vote
-        response = self.client.post(f'/answers/{self.answer.pk}/vote')
+        response = self.client.post(f"/answers/{self.answer.pk}/vote")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Attempt to vote again on the same answer
-        second_response = self.client.post(f'/answers/{self.answer.pk}/vote')
+        second_response = self.client.post(f"/answers/{self.answer.pk}/vote")
         self.assertEqual(second_response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(second_response.data["detail"], "You have already voted on this answer.")
 
@@ -334,7 +334,7 @@ class CommentsApiTests(APITestCase):
             "question_id": self.question.pk,
             "comment_text": "This is a test comment by an authenticated user.",
         }
-        response = self.client.post('/comments/', data=data, format='json')
+        response = self.client.post("/comments/", data=data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["comment_text"], data["comment_text"])
@@ -345,7 +345,7 @@ class CommentsApiTests(APITestCase):
             "question_id": self.question.pk,
             "comment_text": "This is a test comment by an anonymous user.",
         }
-        response = self.client.post('/comments/', data=data, format='json')
+        response = self.client.post("/comments/", data=data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["comment_text"], data["comment_text"])
@@ -360,10 +360,10 @@ class CommentsApiTests(APITestCase):
             "question_id": self.question.pk,
             "comment_text": "First anonymous comment.",
         }
-        first_response = self.client.post('/comments/', data=data, format='json')
+        first_response = self.client.post("/comments/", data=data, format="json")
         self.assertEqual(first_response.status_code, status.HTTP_201_CREATED)
 
-        second_response = self.client.post('/comments/', data=data, format='json')
+        second_response = self.client.post("/comments/", data=data, format="json")
         self.assertEqual(second_response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("detail", second_response.data)
         self.assertEqual(second_response.data["detail"],
@@ -379,7 +379,7 @@ class CommentsApiTests(APITestCase):
         )
 
         data = {"comment_text": "Updated comment by authenticated user."}
-        response = self.client.patch(f'/comments/{comment.pk}/', data=data, format='json')
+        response = self.client.patch(f"/comments/{comment.pk}/", data=data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         comment.refresh_from_db()
@@ -391,7 +391,7 @@ class CommentsApiTests(APITestCase):
             "question_id": self.question.pk,
             "comment_text": "Anonymous comment",
         }
-        create_response = self.client.post('/comments/', data=comment_data, format='json')
+        create_response = self.client.post("/comments/", data=comment_data, format="json")
         self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
 
         # Get cookie token to simulate ownership check
@@ -401,7 +401,7 @@ class CommentsApiTests(APITestCase):
         # Update the comment as the same anonymous user
         data = {"comment_text": "Updated anonymous comment"}
         comment_id = create_response.data["id"]
-        update_response = self.client.patch(f'/comments/{comment_id}/', data=data, format='json')
+        update_response = self.client.patch(f"/comments/{comment_id}/", data=data, format="json")
 
         self.assertEqual(update_response.status_code, status.HTTP_200_OK)
         comment = CommentModel.objects.get(pk=comment_id)
@@ -414,14 +414,14 @@ class CommentsApiTests(APITestCase):
             "question_id": self.question.pk,
             "comment_text": "Anonymous comment for deletion",
         }
-        create_response = self.client.post('/comments/', data=comment_data, format='json')
+        create_response = self.client.post("/comments/", data=comment_data, format="json")
         comment_id = create_response.data["id"]
         token = create_response.cookies["anonymous_user_token"].value
 
         self.client.cookies["anonymous_user_token"] = token
 
         # Delete the comment
-        delete_response = self.client.delete(f'/comments/{comment_id}/')
+        delete_response = self.client.delete(f"/comments/{comment_id}/")
         self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
 
         # Check that the comment ID is removed from the JWT token in the cookie
@@ -467,7 +467,7 @@ class PermissionsTests(APITestCase):
             "question_id": self.question.pk,
             "comment_text": "Anonymous comment"
         }
-        response = self.client.post('/comments/', data=comment_data, format='json')
+        response = self.client.post("/comments/", data=comment_data, format="json")
         self.anonymous_user_token = response.cookies.get("anonymous_user_token").value
         self.client.cookies["anonymous_user_token"] = self.anonymous_user_token
         self.comment = CommentModel.objects.get(pk=response.data["id"])
@@ -478,7 +478,7 @@ class PermissionsTests(APITestCase):
     def test_view_access_permissions_for_anonymous_user(self):
         """Anonymous user with no token should not access restricted endpoints."""
         # Try to access a protected product detail endpoint
-        response = self.client.get(f'/products/{self.product.pk}/')
+        response = self.client.get(f"/products/{self.product.pk}/")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_access_permissions_for_anonymous_user_with_token(self):
@@ -486,7 +486,7 @@ class PermissionsTests(APITestCase):
         # Set the JWT cookie token for the anonymous user
         self.client.cookies["anonymous_user_token"] = self.anonymous_user_token
 
-        response = self.client.patch(f'/comments/{self.comment.pk}/',
+        response = self.client.patch(f"/comments/{self.comment.pk}/",
                                      data={"question_id": self.question.pk, "comment_text": "Anonymous comment"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["comment_text"], self.comment.comment_text)
@@ -496,25 +496,25 @@ class PermissionsTests(APITestCase):
         self.authenticate()
 
         # Access product
-        response = self.client.patch(f'/products/{self.product.pk}/', data={"name": "Test Product 1"})
+        response = self.client.patch(f"/products/{self.product.pk}/", data={"name": "Test Product 1"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.product.refresh_from_db()
         self.assertEqual(response.data["data"]["name"], self.product.name)
 
         # Access question
-        response = self.client.patch(f'/questions/{self.question.pk}/', data={"question_text": "string 1"})
+        response = self.client.patch(f"/questions/{self.question.pk}/", data={"question_text": "string 1"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.question.refresh_from_db()
         self.assertEqual(response.data["data"]["question_text"], self.question.question_text)
 
         # Access answer
-        response = self.client.patch(f'/answers/{self.answer.pk}/', data={"answer_text": "New text"})
+        response = self.client.patch(f"/answers/{self.answer.pk}/", data={"answer_text": "New text"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.answer.refresh_from_db()
         self.assertEqual(response.data["data"]["answer_text"], self.answer.answer_text)
 
     def test_anonymous_user_cannot_edit_or_delete_another_user_comment(self):
-        """Anonymous user should not be able to edit or delete other users' comments."""
+        """Anonymous user should not be able to edit or delete other users" comments."""
 
         foreign_comment = CommentModel.objects.create(
             question=self.question,
@@ -526,15 +526,15 @@ class PermissionsTests(APITestCase):
 
         data = {"comment_text": "Malicious edit attempt"}
 
-        response = self.client.patch(f'/comments/{foreign_comment.pk}/', data=data, format='json')
+        response = self.client.patch(f"/comments/{foreign_comment.pk}/", data=data, format="json")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-        # Attempt to delete another user's comment
-        response = self.client.delete(f'/comments/{foreign_comment.pk}/')
+        # Attempt to delete another user"s comment
+        response = self.client.delete(f"/comments/{foreign_comment.pk}/")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_authenticated_user_cannot_edit_or_delete_another_user_comment(self):
-        """Authenticated user should not edit or delete another user's comment."""
+        """Authenticated user should not edit or delete another user"s comment."""
         another_user = UserModel.objects.create_user(email="other@test.com", username="otheruser", password="password")
 
         foreign_comment = CommentModel.objects.create(
@@ -549,11 +549,12 @@ class PermissionsTests(APITestCase):
 
         # Attempt to update comment
         data = {"comment_text": "Unauthorized edit"}
-        response = self.client.patch(f'/comments/{foreign_comment.pk}/', data=data, format='json')
+        response = self.client.patch(f"/comments/{foreign_comment.pk}/", data=data, format="json")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
         # Attempt to delete comment
-        response = self.client.delete(f'/comments/{foreign_comment.pk}/')
+        response = self.client.delete(f"/comments/{foreign_comment.pk}/")
+        response = self.client.delete(f"/comments/{foreign_comment.pk}/")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_only_anonymous_user_with_valid_token_can_delete_own_comment(self):
@@ -562,7 +563,7 @@ class PermissionsTests(APITestCase):
 
         self.client.cookies["anonymous_user_token"] = self.anonymous_user_token
 
-        response = self.client.delete(f'/comments/{self.comment.pk}/')
+        response = self.client.delete(f"/comments/{self.comment.pk}/")
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
         print("Response status code:", response.status_code)
@@ -586,7 +587,7 @@ class PermissionsTests(APITestCase):
         )
 
         data = {"comment_text": "Edited comment by authenticated user"}
-        response = self.client.patch(f'/comments/{comment.pk}/', data=data, format='json')
+        response = self.client.patch(f"/comments/{comment.pk}/", data=data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         comment.refresh_from_db()
@@ -599,9 +600,9 @@ class PermissionsTests(APITestCase):
 
         # Attempt to update comment
         data = {"comment_text": "Invalid token edit attempt"}
-        response = self.client.patch(f'/comments/{self.comment.pk}/', data=data, format='json')
+        response = self.client.patch(f"/comments/{self.comment.pk}/", data=data, format="json")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
         # Attempt to delete comment
-        response = self.client.delete(f'/comments/{self.comment.pk}/')
+        response = self.client.delete(f"/comments/{self.comment.pk}/")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

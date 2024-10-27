@@ -3,10 +3,10 @@ from rest_framework import generics as views
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
-from polls_app.core.models import AnswerModel, CommentModel
+from polls_app.core.models import AnswerModel, CommentModel, QuestionModel
 from polls_app.core.permissions import IsAuthenticatedOrJWTGuest
 from polls_app.core.services import get_object_and_check_permission_service, generate_comment_jwt_token_service, \
-    validate_comment_uniqueness_service, vote_on_answer_service
+    validate_comment_uniqueness_service, vote_on_answer_service, activate_deactivate_question_service
 from polls_app.core.selectors import ProductsSelector, QuestionSelector
 from polls_app.core.serializers import ProductListDisplaySerializer, QuestionRetrieveSerializer, \
     QuestionCreateSerializer, ProductCreateUpdateDeleteSerializer, AnswerCreateSerializer, CommentCreateSerializer, \
@@ -119,6 +119,19 @@ class QuestionRetrieveUpdateDeleteApiView(UpdateDeleteMixin, views.GenericAPIVie
         if self.request.method.lower() == "get":
             return QuestionRetrieveSerializer
         return QuestionUpdateDeleteSerializer
+
+
+class QuestionActivateDeactivateApiView(views.GenericAPIView):
+    """
+    This view is dedicated just to add votes to answers.
+    """
+    queryset = QuestionModel.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        instance = self.get_object()
+        response = activate_deactivate_question_service(request, instance)
+        return response
 
 
 class AnswersCreateApiView(views.GenericAPIView):
